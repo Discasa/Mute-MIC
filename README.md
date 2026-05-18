@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute.MIC.Installer.exe">
+  <a href="https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute%20MIC%20Installer.exe">
     Download Mute MIC Installer
   </a>
 </p>
@@ -27,9 +27,9 @@ at the same time.
 
 - One-click mute/unmute for all active input devices.
 - Global hotkey support, with `Ctrl+M` as the default toggle shortcut.
-- Tray icon state feedback, with green for active and orange for muted.
+- Tray icon state feedback with monochromatic or green/orange modes.
 - Windows theme-aware interface.
-- English interface with a Portuguese language option.
+- Automatic system-language detection, with English and Portuguese options.
 - Embedded sound feedback.
 - Automatic updates through GitHub Releases.
 - Per-user install, no admin prompt required for normal use.
@@ -38,7 +38,7 @@ at the same time.
 
 Get the latest installer here:
 
-[Download Mute MIC Installer](https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute.MIC.Installer.exe)
+[Download Mute MIC Installer](https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute%20MIC%20Installer.exe)
 
 All releases are available on the
 [GitHub Releases page](https://github.com/Discasa/Mute-MIC/releases).

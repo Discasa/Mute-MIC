@@ -72,11 +72,17 @@ HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTh
 
 Runtime icon behavior:
 
-- Dark Windows theme: white tray/window icons.
-- Light Windows theme: dark gray tray/window icons.
+- Monochromatic mode follows the Windows app theme for contrast:
+  - Dark Windows theme: white tray/window icons.
+  - Light Windows theme: dark gray tray/window icons.
+- Colorful mode always uses green for active/unmuted and orange for muted.
 
 The executable, installer, and uninstaller use the white mic-on icon as their
 static file icon.
+
+The first-run language default follows the Windows UI language. Portuguese
+systems use `pt-BR`; all other systems use English. The tray language menu can
+override this setting.
 
 ## Assets
 

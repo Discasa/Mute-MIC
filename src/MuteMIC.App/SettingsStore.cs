@@ -1,13 +1,21 @@
 using Microsoft.Win32;
+using System.Globalization;
 
 namespace MuteMIC.App;
+
+internal enum IconColorScheme
+{
+    Monochrome,
+    Colorful
+}
 
 internal sealed class AppSettings
 {
     public HotkeyDefinition ToggleHotkey { get; set; } = new(HotkeyModifiers.Control, Keys.M);
     public HotkeyDefinition MuteHotkey { get; set; } = HotkeyDefinition.None;
     public HotkeyDefinition UnmuteHotkey { get; set; } = HotkeyDefinition.None;
-    public string Language { get; set; } = "en";
+    public string Language { get; set; } = SettingsStore.DetectDefaultLanguage();
+    public IconColorScheme IconColorScheme { get; set; } = IconColorScheme.Colorful;
 }
 
 internal sealed class SettingsStore
@@ -32,7 +40,8 @@ internal sealed class SettingsStore
         settings.UnmuteHotkey = HotkeyDefinition.Parse(
             key.GetValue("UnmuteHotkey") as string,
             HotkeyDefinition.None);
-        settings.Language = (key.GetValue("Language") as string) == "pt-BR" ? "pt-BR" : "en";
+        settings.Language = NormalizeLanguage(key.GetValue("Language") as string ?? settings.Language);
+        settings.IconColorScheme = ParseIconColorScheme(key.GetValue("IconColorScheme") as string);
         return settings;
     }
 
@@ -43,5 +52,27 @@ internal sealed class SettingsStore
         key.SetValue("MuteHotkey", settings.MuteHotkey.ToStorageString());
         key.SetValue("UnmuteHotkey", settings.UnmuteHotkey.ToStorageString());
         key.SetValue("Language", settings.Language);
+        key.SetValue("IconColorScheme", settings.IconColorScheme.ToString());
+    }
+
+    public static string DetectDefaultLanguage()
+    {
+        return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("pt", StringComparison.OrdinalIgnoreCase)
+            ? "pt-BR"
+            : "en";
+    }
+
+    private static string NormalizeLanguage(string language)
+    {
+        return language.Equals("pt-BR", StringComparison.OrdinalIgnoreCase) || language.StartsWith("pt", StringComparison.OrdinalIgnoreCase)
+            ? "pt-BR"
+            : "en";
+    }
+
+    private static IconColorScheme ParseIconColorScheme(string? value)
+    {
+        return Enum.TryParse(value, ignoreCase: true, out IconColorScheme colorScheme)
+            ? colorScheme
+            : IconColorScheme.Colorful;
     }
 }

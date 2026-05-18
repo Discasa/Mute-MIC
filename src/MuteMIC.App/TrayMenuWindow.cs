@@ -18,8 +18,10 @@ internal sealed class TrayMenuWindow : Form
 
     private readonly bool _lightTheme;
     private readonly TrayMenuText _text;
+    private readonly IconColorScheme _currentColorScheme;
     private readonly string _currentLanguage;
     private readonly Action _showHotkeys;
+    private readonly Action<IconColorScheme> _setColorScheme;
     private readonly Action<string> _setLanguage;
     private readonly Action _exit;
     private readonly Color _menuBackColor;
@@ -28,34 +30,43 @@ internal sealed class TrayMenuWindow : Form
     private readonly Color _separatorColor;
     private readonly Color _textColor;
     private readonly Color _mutedTextColor;
+    private Rectangle _mainPanelRect;
+    private Rectangle _submenuPanelRect;
     private Rectangle _hotkeysRect;
+    private Rectangle _colorSchemeRect;
     private Rectangle _languageRect;
     private Rectangle _exitRect;
+    private Rectangle _monochromeRect;
+    private Rectangle _colorfulRect;
     private Rectangle _englishRect;
     private Rectangle _portugueseRect;
     private string? _hoveredItem;
-    private bool _submenuVisible;
+    private ActiveSubmenu _activeSubmenu = ActiveSubmenu.None;
     private bool _closingByAction;
 
-    private static int MainMenuHeight => (MenuPadding * 2) + (ItemHeight * 3) + SeparatorHeight;
+    private static int MainMenuHeight => (MenuPadding * 2) + (ItemHeight * 4) + SeparatorHeight;
     private static int SubMenuHeight => (MenuPadding * 2) + (ItemHeight * 2);
     private static int CollapsedWindowWidth => MenuWidth + (ShadowMargin * 2);
     private static int ExpandedWindowWidth => MenuWidth + MenuGap + SubMenuWidth + (ShadowMargin * 2);
-    private static int WindowHeight => Math.Max(MainMenuHeight, SubMenuHeight + ItemHeight) + (ShadowMargin * 2);
+    private static int WindowHeight => MainMenuHeight + (ShadowMargin * 2);
 
     public TrayMenuWindow(
         bool lightTheme,
         TrayMenuText text,
+        IconColorScheme currentColorScheme,
         string currentLanguage,
         Point anchor,
         Action showHotkeys,
+        Action<IconColorScheme> setColorScheme,
         Action<string> setLanguage,
         Action exit)
     {
         _lightTheme = lightTheme;
         _text = text;
+        _currentColorScheme = currentColorScheme;
         _currentLanguage = currentLanguage;
         _showHotkeys = showHotkeys;
+        _setColorScheme = setColorScheme;
         _setLanguage = setLanguage;
         _exit = exit;
 
@@ -70,6 +81,7 @@ internal sealed class TrayMenuWindow : Form
         BackColor = Color.Black;
         ClientSize = new Size(CollapsedWindowWidth, WindowHeight);
         FormBorderStyle = FormBorderStyle.None;
+        KeyPreview = true;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
         TopMost = true;
@@ -98,7 +110,14 @@ internal sealed class TrayMenuWindow : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        Capture = true;
         RenderLayeredWindow();
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        Capture = false;
+        base.OnFormClosed(e);
     }
 
     protected override void OnDeactivate(EventArgs e)
@@ -115,13 +134,12 @@ internal sealed class TrayMenuWindow : Form
         base.OnMouseMove(e);
 
         string? hovered = HitTest(e.Location);
-        bool showSubmenu = _languageRect.Contains(e.Location)
-            || (_submenuVisible && (IsInSubmenu(e.Location) || IsBetweenLanguageAndSubmenu(e.Location)));
+        ActiveSubmenu submenu = GetActiveSubmenuForPoint(e.Location);
 
-        if (hovered != _hoveredItem || showSubmenu != _submenuVisible)
+        if (hovered != _hoveredItem || submenu != _activeSubmenu)
         {
             _hoveredItem = hovered;
-            SetSubmenuVisible(showSubmenu);
+            SetActiveSubmenu(submenu);
             RenderLayeredWindow();
         }
     }
@@ -129,10 +147,10 @@ internal sealed class TrayMenuWindow : Form
     protected override void OnMouseLeave(EventArgs e)
     {
         base.OnMouseLeave(e);
-        if (_hoveredItem is not null || _submenuVisible)
+        if (_hoveredItem is not null || _activeSubmenu != ActiveSubmenu.None)
         {
             _hoveredItem = null;
-            SetSubmenuVisible(false);
+            SetActiveSubmenu(ActiveSubmenu.None);
             RenderLayeredWindow();
         }
     }
@@ -140,6 +158,12 @@ internal sealed class TrayMenuWindow : Form
     protected override void OnMouseDown(MouseEventArgs e)
     {
         base.OnMouseDown(e);
+        if (!IsInOpenMenuSurface(e.Location))
+        {
+            Close();
+            return;
+        }
+
         if (e.Button != MouseButtons.Left)
         {
             return;
@@ -153,6 +177,12 @@ internal sealed class TrayMenuWindow : Form
             case "exit":
                 CloseThen(_exit);
                 break;
+            case "monochrome":
+                CloseThen(() => _setColorScheme(IconColorScheme.Monochrome));
+                break;
+            case "colorful":
+                CloseThen(() => _setColorScheme(IconColorScheme.Colorful));
+                break;
             case "english":
                 CloseThen(() => _setLanguage("en"));
                 break;
@@ -162,6 +192,28 @@ internal sealed class TrayMenuWindow : Form
         }
     }
 
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Escape)
+        {
+            Close();
+            return;
+        }
+
+        base.OnKeyDown(e);
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        const int WM_CAPTURECHANGED = 0x0215;
+        if (m.Msg == WM_CAPTURECHANGED && !_closingByAction && !IsDisposed)
+        {
+            BeginInvoke(Close);
+        }
+
+        base.WndProc(ref m);
+    }
+
     private void CloseThen(Action action)
     {
         _closingByAction = true;
@@ -169,15 +221,40 @@ internal sealed class TrayMenuWindow : Form
         action();
     }
 
-    private void SetSubmenuVisible(bool visible)
+    private void SetActiveSubmenu(ActiveSubmenu submenu)
     {
-        if (_submenuVisible == visible)
+        if (_activeSubmenu == submenu)
         {
             return;
         }
 
-        _submenuVisible = visible;
-        ClientSize = new Size(visible ? ExpandedWindowWidth : CollapsedWindowWidth, WindowHeight);
+        _activeSubmenu = submenu;
+        ClientSize = new Size(submenu == ActiveSubmenu.None ? CollapsedWindowWidth : ExpandedWindowWidth, WindowHeight);
+    }
+
+    private ActiveSubmenu GetActiveSubmenuForPoint(Point point)
+    {
+        if (_colorSchemeRect.Contains(point))
+        {
+            return ActiveSubmenu.ColorScheme;
+        }
+
+        if (_languageRect.Contains(point))
+        {
+            return ActiveSubmenu.Language;
+        }
+
+        if (_activeSubmenu == ActiveSubmenu.ColorScheme && (IsInSubmenu(point, ActiveSubmenu.ColorScheme) || IsBetweenItemAndSubmenu(point, _colorSchemeRect)))
+        {
+            return ActiveSubmenu.ColorScheme;
+        }
+
+        if (_activeSubmenu == ActiveSubmenu.Language && (IsInSubmenu(point, ActiveSubmenu.Language) || IsBetweenItemAndSubmenu(point, _languageRect)))
+        {
+            return ActiveSubmenu.Language;
+        }
+
+        return ActiveSubmenu.None;
     }
 
     private string? HitTest(Point point)
@@ -185,6 +262,11 @@ internal sealed class TrayMenuWindow : Form
         if (_hotkeysRect.Contains(point))
         {
             return "hotkeys";
+        }
+
+        if (_colorSchemeRect.Contains(point))
+        {
+            return "colorScheme";
         }
 
         if (_languageRect.Contains(point))
@@ -197,28 +279,49 @@ internal sealed class TrayMenuWindow : Form
             return "exit";
         }
 
-        if (_submenuVisible && _englishRect.Contains(point))
+        if (_activeSubmenu == ActiveSubmenu.ColorScheme)
         {
-            return "english";
+            if (_monochromeRect.Contains(point))
+            {
+                return "monochrome";
+            }
+
+            if (_colorfulRect.Contains(point))
+            {
+                return "colorful";
+            }
         }
 
-        if (_submenuVisible && _portugueseRect.Contains(point))
+        if (_activeSubmenu == ActiveSubmenu.Language)
         {
-            return "portuguese";
+            if (_englishRect.Contains(point))
+            {
+                return "english";
+            }
+
+            if (_portugueseRect.Contains(point))
+            {
+                return "portuguese";
+            }
         }
 
         return null;
     }
 
-    private bool IsInSubmenu(Point point)
+    private bool IsInOpenMenuSurface(Point point)
     {
-        Rectangle submenu = new(ShadowMargin + MenuWidth + MenuGap, ShadowMargin + MenuPadding + ItemHeight, SubMenuWidth, SubMenuHeight);
-        return submenu.Contains(point);
+        return _mainPanelRect.Contains(point) || (_activeSubmenu != ActiveSubmenu.None && _submenuPanelRect.Contains(point));
     }
 
-    private bool IsBetweenLanguageAndSubmenu(Point point)
+    private bool IsInSubmenu(Point point, ActiveSubmenu submenu)
     {
-        Rectangle bridge = new(_languageRect.Right, _languageRect.Top, MenuGap + 4, _languageRect.Height);
+        Rectangle submenuRect = GetSubmenuPanelRect(submenu);
+        return submenuRect.Contains(point);
+    }
+
+    private bool IsBetweenItemAndSubmenu(Point point, Rectangle itemRect)
+    {
+        Rectangle bridge = new(itemRect.Right, itemRect.Top, MenuGap + 4, itemRect.Height);
         return bridge.Contains(point);
     }
 
@@ -232,9 +335,9 @@ internal sealed class TrayMenuWindow : Form
             graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
             DrawMainMenu(graphics);
-            if (_submenuVisible)
+            if (_activeSubmenu != ActiveSubmenu.None)
             {
-                DrawLanguageSubmenu(graphics);
+                DrawSubmenu(graphics, _activeSubmenu);
             }
         }
 
@@ -243,19 +346,23 @@ internal sealed class TrayMenuWindow : Form
 
     private void DrawMainMenu(Graphics graphics)
     {
-        Rectangle panel = new(ShadowMargin, ShadowMargin, MenuWidth, MainMenuHeight);
-        DrawPanel(graphics, panel);
+        _mainPanelRect = new Rectangle(ShadowMargin, ShadowMargin, MenuWidth, MainMenuHeight);
+        DrawPanel(graphics, _mainPanelRect);
 
-        int x = panel.Left + 7;
-        int y = panel.Top + MenuPadding;
+        int x = _mainPanelRect.Left + 7;
+        int y = _mainPanelRect.Top + MenuPadding;
         int width = MenuWidth - 14;
 
         _hotkeysRect = new Rectangle(x, y, width, ItemHeight);
         DrawItem(graphics, _hotkeysRect, _text.Hotkeys, isHovered: _hoveredItem == "hotkeys");
         y += ItemHeight;
 
+        _colorSchemeRect = new Rectangle(x, y, width, ItemHeight);
+        DrawItem(graphics, _colorSchemeRect, _text.ColorScheme, isHovered: _hoveredItem == "colorScheme" || _activeSubmenu == ActiveSubmenu.ColorScheme, hasSubmenu: true);
+        y += ItemHeight;
+
         _languageRect = new Rectangle(x, y, width, ItemHeight);
-        DrawItem(graphics, _languageRect, _text.Language, isHovered: _hoveredItem == "language" || _submenuVisible, hasSubmenu: true);
+        DrawItem(graphics, _languageRect, _text.Language, isHovered: _hoveredItem == "language" || _activeSubmenu == ActiveSubmenu.Language, hasSubmenu: true);
         y += ItemHeight;
 
         DrawSeparator(graphics, new Rectangle(x + 10, y + 4, width - 20, 1));
@@ -265,14 +372,25 @@ internal sealed class TrayMenuWindow : Form
         DrawItem(graphics, _exitRect, _text.Exit, isHovered: _hoveredItem == "exit");
     }
 
-    private void DrawLanguageSubmenu(Graphics graphics)
+    private void DrawSubmenu(Graphics graphics, ActiveSubmenu submenu)
     {
-        Rectangle panel = new(ShadowMargin + MenuWidth + MenuGap, ShadowMargin + MenuPadding + ItemHeight, SubMenuWidth, SubMenuHeight);
-        DrawPanel(graphics, panel);
+        _submenuPanelRect = GetSubmenuPanelRect(submenu);
+        DrawPanel(graphics, _submenuPanelRect);
 
-        int x = panel.Left + 7;
-        int y = panel.Top + MenuPadding;
+        int x = _submenuPanelRect.Left + 7;
+        int y = _submenuPanelRect.Top + MenuPadding;
         int width = SubMenuWidth - 14;
+
+        if (submenu == ActiveSubmenu.ColorScheme)
+        {
+            _monochromeRect = new Rectangle(x, y, width, ItemHeight);
+            DrawItem(graphics, _monochromeRect, _text.Monochrome, isHovered: _hoveredItem == "monochrome", isChecked: _currentColorScheme == IconColorScheme.Monochrome);
+            y += ItemHeight;
+
+            _colorfulRect = new Rectangle(x, y, width, ItemHeight);
+            DrawItem(graphics, _colorfulRect, _text.Colorful, isHovered: _hoveredItem == "colorful", isChecked: _currentColorScheme == IconColorScheme.Colorful);
+            return;
+        }
 
         _englishRect = new Rectangle(x, y, width, ItemHeight);
         DrawItem(graphics, _englishRect, _text.English, isHovered: _hoveredItem == "english", isChecked: _currentLanguage == "en");
@@ -280,6 +398,12 @@ internal sealed class TrayMenuWindow : Form
 
         _portugueseRect = new Rectangle(x, y, width, ItemHeight);
         DrawItem(graphics, _portugueseRect, _text.Portuguese, isHovered: _hoveredItem == "portuguese", isChecked: _currentLanguage == "pt-BR");
+    }
+
+    private Rectangle GetSubmenuPanelRect(ActiveSubmenu submenu)
+    {
+        Rectangle parent = submenu == ActiveSubmenu.ColorScheme ? _colorSchemeRect : _languageRect;
+        return new Rectangle(ShadowMargin + MenuWidth + MenuGap, parent.Top, SubMenuWidth, SubMenuHeight);
     }
 
     private void DrawPanel(Graphics graphics, Rectangle rect)
@@ -426,6 +550,13 @@ internal sealed class TrayMenuWindow : Form
         return path;
     }
 
+    private enum ActiveSubmenu
+    {
+        None,
+        ColorScheme,
+        Language
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     private struct BlendFunction
     {
@@ -468,6 +599,9 @@ internal sealed class TrayMenuWindow : Form
 
 internal readonly record struct TrayMenuText(
     string Hotkeys,
+    string ColorScheme,
+    string Monochrome,
+    string Colorful,
     string Language,
     string English,
     string Portuguese,

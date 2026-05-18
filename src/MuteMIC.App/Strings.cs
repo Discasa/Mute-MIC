@@ -8,6 +8,9 @@ internal static class Strings
         {
             ["AppName"] = "Mute MIC",
             ["Hotkeys"] = "Hotkeys",
+            ["ColorScheme"] = "Color scheme",
+            ["Monochrome"] = "Monochrome",
+            ["Colorful"] = "Colorful",
             ["Language"] = "Language",
             ["English"] = "English",
             ["Portuguese"] = "Portuguese",
@@ -25,16 +28,19 @@ internal static class Strings
         {
             ["AppName"] = "Mute MIC",
             ["Hotkeys"] = "Atalhos",
+            ["ColorScheme"] = "Esquema de cores",
+            ["Monochrome"] = "Monocromático",
+            ["Colorful"] = "Colorido",
             ["Language"] = "Idioma",
-            ["English"] = "Ingles",
-            ["Portuguese"] = "Portugues",
+            ["English"] = "Inglês",
+            ["Portuguese"] = "Português",
             ["Exit"] = "Sair",
             ["ToggleLabel"] = "Atalho para alternar",
             ["MuteLabel"] = "Atalho para mutar",
             ["UnmuteLabel"] = "Atalho para desmutar",
             ["Reset"] = "limpar",
-            ["NoInputs"] = "Nenhuma entrada de audio ativa",
-            ["PartialFailure"] = "Alguns dispositivos nao puderam ser atualizados.",
+            ["NoInputs"] = "Nenhuma entrada de áudio ativa",
+            ["PartialFailure"] = "Alguns dispositivos não puderam ser atualizados.",
             ["ClickToMute"] = "Clique para mutar",
             ["ClickToUnmute"] = "Clique para desmutar"
         }

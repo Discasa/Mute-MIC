@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 - 2026-05-18
+
+- Added a tray `Color scheme` submenu with monochromatic and colorful icon modes.
+- Restored theme-aware monochromatic tray icons while keeping green/orange icons as the colorful mode.
+- Added system-language detection for the app, installer, and uninstaller defaults.
+- Improved Portuguese translations across the app and setup flows.
+- Hardened the custom tray menu so it closes reliably when clicking outside it.
+
 ## 1.1.3 - 2026-05-18
 
 - Changed tray state icons: unmuted/on now uses green and muted/off now uses orange.

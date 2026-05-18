@@ -39,11 +39,12 @@ internal sealed class InstallerForm : Form
     private const string AppName = "Mute MIC";
     private const string LegacyTaskName = "MicMute";
     private const string UninstallerName = "Mute MIC Uninstaller.exe";
-    private const string AppVersion = "1.1.3";
+    private const string AppVersion = "1.2.0";
     private const string Publisher = "anderson";
     private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
     private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
+    private readonly string _language = SetupStrings.DetectLanguage();
     private readonly string _installDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         AppName);
@@ -60,7 +61,7 @@ internal sealed class InstallerForm : Form
 
     public InstallerForm(InstallerOptions options)
     {
-        Text = $"{AppName} Installer";
+        Text = T("InstallerTitleBar");
         Icon? icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         if (icon is not null)
         {
@@ -111,13 +112,13 @@ internal sealed class InstallerForm : Form
 
     private void BuildUi()
     {
-        _titleLabel.Text = "Install Mute MIC";
+        _titleLabel.Text = T("InstallTitle");
         _titleLabel.Font = new Font("Segoe UI", 18F, FontStyle.Regular, GraphicsUnit.Point);
         _titleLabel.Location = new Point(28, 28);
         _titleLabel.Size = new Size(504, 36);
         _titleLabel.TextAlign = ContentAlignment.MiddleLeft;
 
-        _bodyLabel.Text = "This setup will install Mute MIC and configure startup, Start Menu shortcuts, and Windows Installed Apps integration.";
+        _bodyLabel.Text = T("InstallBody");
         _bodyLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         _bodyLabel.Location = new Point(30, 72);
         _bodyLabel.Size = new Size(500, 42);
@@ -125,7 +126,7 @@ internal sealed class InstallerForm : Form
 
         Label locationTitle = new()
         {
-            Text = "Install location",
+            Text = T("InstallLocation"),
             Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point),
             Dock = DockStyle.Top,
             Height = 20
@@ -144,16 +145,16 @@ internal sealed class InstallerForm : Form
         _progressBar.ProgressValue = 0;
         _progressBar.Visible = false;
 
-        _statusLabel.Text = "Ready to install.";
+        _statusLabel.Text = T("ReadyToInstall");
         _statusLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         _statusLabel.Location = new Point(30, 238);
         _statusLabel.Size = new Size(500, 34);
 
-        _installButton.Text = "Install";
+        _installButton.Text = T("InstallButton");
         _installButton.Location = new Point(422, 304);
         _installButton.Size = new Size(110, 36);
         _installButton.Click += InstallButton_Click;
-        _cancelButton.Text = "Cancel";
+        _cancelButton.Text = T("Cancel");
         _cancelButton.Location = new Point(300, 304);
         _cancelButton.Size = new Size(110, 36);
         _cancelButton.Click += (_, _) => Close();
@@ -193,28 +194,28 @@ internal sealed class InstallerForm : Form
         _installButton.Enabled = false;
         _cancelButton.Enabled = false;
         _progressBar.Visible = true;
-        _titleLabel.Text = "Installing Mute MIC";
-        _bodyLabel.Text = "Please wait while setup installs the application.";
+        _titleLabel.Text = T("InstallingTitle");
+        _bodyLabel.Text = T("InstallingBody");
 
         Progress<InstallProgress> progress = new(UpdateProgress);
 
         try
         {
             await Task.Run(() => Install(progress));
-            UpdateProgress(new InstallProgress(100, "Mute MIC was installed successfully."));
-            _titleLabel.Text = "Mute MIC installed";
-            _bodyLabel.Text = "The application is installed and ready to use.";
+            UpdateProgress(new InstallProgress(100, T("InstalledStatus")));
+            _titleLabel.Text = T("InstalledTitle");
+            _bodyLabel.Text = T("InstalledBody");
             _installComplete = true;
-            _installButton.Text = "Finish";
+            _installButton.Text = T("Finish");
             _installButton.Enabled = true;
             _cancelButton.Visible = false;
         }
         catch (Exception ex)
         {
-            _titleLabel.Text = "Installation failed";
+            _titleLabel.Text = T("InstallFailedTitle");
             _bodyLabel.Text = ex.Message;
-            _statusLabel.Text = "Setup could not complete.";
-            _installButton.Text = "Close";
+            _statusLabel.Text = T("SetupCouldNotComplete");
+            _installButton.Text = T("Close");
             _installComplete = true;
             _installButton.Enabled = true;
             _cancelButton.Visible = false;
@@ -237,40 +238,45 @@ internal sealed class InstallerForm : Form
         string uninstallerExe = Path.Combine(_installDir, UninstallerName);
         string appIcon = Path.Combine(_installDir, $"{AppName}.ico");
 
-        progress.Report(new InstallProgress(5, "Preparing installation..."));
+        progress.Report(new InstallProgress(5, T("PreparingInstall")));
         StopKnownProcesses();
 
-        progress.Report(new InstallProgress(18, "Removing old startup entries..."));
+        progress.Report(new InstallProgress(18, T("RemovingStartup")));
         DeleteStartupEntries();
 
-        progress.Report(new InstallProgress(32, "Creating installation folder..."));
+        progress.Report(new InstallProgress(32, T("CreatingFolder")));
         PrepareInstallDirectory(_installDir);
 
-        progress.Report(new InstallProgress(52, "Copying application files..."));
+        progress.Report(new InstallProgress(52, T("CopyingFiles")));
         InstallPayload(_installDir);
         if (!File.Exists(appExe))
         {
-            throw new FileNotFoundException("Application executable was not copied.", appExe);
+            throw new FileNotFoundException(T("AppNotCopied"), appExe);
         }
 
-        progress.Report(new InstallProgress(68, "Creating Start Menu shortcuts..."));
+        progress.Report(new InstallProgress(68, T("CreatingShortcuts")));
         CreateShortcuts(appExe, uninstallerExe, appIcon);
 
-        progress.Report(new InstallProgress(78, "Registering Windows Installed Apps entry..."));
+        progress.Report(new InstallProgress(78, T("RegisteringInstalledApps")));
         RegisterInstalledApp(_installDir, appExe, uninstallerExe, appIcon);
 
-        progress.Report(new InstallProgress(90, "Configuring startup entry..."));
+        progress.Report(new InstallProgress(90, T("ConfiguringStartup")));
         if (string.Equals(Environment.GetEnvironmentVariable("MUTEMIC_SKIP_STARTUP"), "1", StringComparison.Ordinal))
         {
-            progress.Report(new InstallProgress(90, "Skipping startup entry for this test run..."));
+            progress.Report(new InstallProgress(90, T("SkippingStartup")));
         }
         else
         {
             CreateStartupEntry(appExe);
         }
 
-        progress.Report(new InstallProgress(96, "Starting Mute MIC..."));
+        progress.Report(new InstallProgress(96, T("StartingApp")));
         Process.Start(new ProcessStartInfo(appExe) { UseShellExecute = true });
+    }
+
+    private string T(string key)
+    {
+        return SetupStrings.Get(_language, key);
     }
 
     private static void StopKnownProcesses()

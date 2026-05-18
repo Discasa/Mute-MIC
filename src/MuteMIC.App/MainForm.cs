@@ -330,6 +330,9 @@ public sealed class MainForm : Form
         string language = _settings.Language;
         TrayMenuText menuText = new(
             Strings.Get(language, "Hotkeys"),
+            Strings.Get(language, "ColorScheme"),
+            Strings.Get(language, "Monochrome"),
+            Strings.Get(language, "Colorful"),
             Strings.Get(language, "Language"),
             Strings.Get(language, "English"),
             Strings.Get(language, "Portuguese"),
@@ -338,9 +341,11 @@ public sealed class MainForm : Form
         _trayMenuWindow = new TrayMenuWindow(
             ThemeService.IsLightTheme(),
             menuText,
+            _settings.IconColorScheme,
             language,
             Cursor.Position,
             ShowSettingsWindow,
+            SetIconColorScheme,
             SetLanguage,
             () =>
             {
@@ -363,6 +368,14 @@ public sealed class MainForm : Form
         _settings.Language = language;
         SaveSettings();
         ApplyLanguage();
+        RefreshAudioStatus(false);
+    }
+
+    private void SetIconColorScheme(IconColorScheme colorScheme)
+    {
+        _settings.IconColorScheme = colorScheme;
+        SaveSettings();
+        ApplyTheme();
         RefreshAudioStatus(false);
     }
 
@@ -440,7 +453,9 @@ public sealed class MainForm : Form
 
         _onIcon?.Dispose();
         _offIcon?.Dispose();
-        string suffix = lightTheme ? "dark" : "white";
+        string suffix = _settings.IconColorScheme == IconColorScheme.Colorful
+            ? "color"
+            : lightTheme ? "dark" : "white";
         _onIcon = EmbeddedResources.LoadIcon($"on-{suffix}.ico");
         _offIcon = EmbeddedResources.LoadIcon($"off-{suffix}.ico");
         Icon = EmbeddedResources.LoadIcon($"on-{suffix}.ico");

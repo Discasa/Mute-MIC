@@ -23,6 +23,7 @@ internal sealed class UninstallerForm : Form
     private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
     private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
+    private readonly string _language = SetupStrings.DetectLanguage();
     private readonly string _installDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         AppName);
@@ -40,7 +41,7 @@ internal sealed class UninstallerForm : Form
 
     public UninstallerForm()
     {
-        Text = $"{AppName} Uninstaller";
+        Text = T("UninstallerTitleBar");
         Icon? icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
         if (icon is not null)
         {
@@ -76,13 +77,13 @@ internal sealed class UninstallerForm : Form
 
     private void BuildUi()
     {
-        _titleLabel.Text = "Uninstall Mute MIC";
+        _titleLabel.Text = T("UninstallTitle");
         _titleLabel.Font = new Font("Segoe UI", 18F, FontStyle.Regular, GraphicsUnit.Point);
         _titleLabel.Location = new Point(28, 28);
         _titleLabel.Size = new Size(504, 36);
         _titleLabel.TextAlign = ContentAlignment.MiddleLeft;
 
-        _bodyLabel.Text = "This will remove Mute MIC, startup entries, Start Menu shortcuts, Windows Installed Apps integration, and settings.";
+        _bodyLabel.Text = T("UninstallBody");
         _bodyLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         _bodyLabel.Location = new Point(30, 72);
         _bodyLabel.Size = new Size(500, 42);
@@ -90,7 +91,7 @@ internal sealed class UninstallerForm : Form
 
         Label locationTitle = new()
         {
-            Text = "Installed location",
+            Text = T("InstalledLocation"),
             Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point),
             Dock = DockStyle.Top,
             Height = 20
@@ -109,16 +110,16 @@ internal sealed class UninstallerForm : Form
         _progressBar.ProgressValue = 0;
         _progressBar.Visible = false;
 
-        _statusLabel.Text = "Ready to uninstall.";
+        _statusLabel.Text = T("ReadyToUninstall");
         _statusLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         _statusLabel.Location = new Point(30, 238);
         _statusLabel.Size = new Size(500, 34);
 
-        _uninstallButton.Text = "Uninstall";
+        _uninstallButton.Text = T("UninstallButton");
         _uninstallButton.Location = new Point(422, 304);
         _uninstallButton.Size = new Size(110, 36);
         _uninstallButton.Click += UninstallButton_Click;
-        _cancelButton.Text = "Cancel";
+        _cancelButton.Text = T("Cancel");
         _cancelButton.Location = new Point(300, 304);
         _cancelButton.Size = new Size(110, 36);
         _cancelButton.Click += (_, _) => Close();
@@ -158,8 +159,8 @@ internal sealed class UninstallerForm : Form
         _uninstallButton.Enabled = false;
         _cancelButton.Enabled = false;
         _progressBar.Visible = true;
-        _titleLabel.Text = "Uninstalling Mute MIC";
-        _bodyLabel.Text = "Please wait while setup removes the application.";
+        _titleLabel.Text = T("UninstallingTitle");
+        _bodyLabel.Text = T("UninstallingBody");
 
         Progress<UninstallProgress> progress = new(UpdateProgress);
 
@@ -167,22 +168,22 @@ internal sealed class UninstallerForm : Form
         {
             await Task.Run(() => Uninstall(progress));
             string completeText = _hadInstallFolder
-                ? "Mute MIC was uninstalled successfully."
-                : "Mute MIC was already uninstalled. Remaining entries were cleaned up.";
+                ? T("UninstalledStatus")
+                : T("AlreadyUninstalledStatus");
             UpdateProgress(new UninstallProgress(100, completeText));
-            _titleLabel.Text = _hadInstallFolder ? "Mute MIC uninstalled" : "Mute MIC already uninstalled";
+            _titleLabel.Text = _hadInstallFolder ? T("UninstalledTitle") : T("AlreadyUninstalledTitle");
             _bodyLabel.Text = completeText;
             _complete = true;
-            _uninstallButton.Text = "Finish";
+            _uninstallButton.Text = T("Finish");
             _uninstallButton.Enabled = true;
             _cancelButton.Visible = false;
         }
         catch (Exception ex)
         {
-            _titleLabel.Text = "Uninstall failed";
+            _titleLabel.Text = T("UninstallFailedTitle");
             _bodyLabel.Text = ex.Message;
-            _statusLabel.Text = "Setup could not complete.";
-            _uninstallButton.Text = "Close";
+            _statusLabel.Text = T("SetupCouldNotComplete");
+            _uninstallButton.Text = T("Close");
             _complete = true;
             _uninstallButton.Enabled = true;
             _cancelButton.Visible = false;
@@ -203,22 +204,27 @@ internal sealed class UninstallerForm : Form
     {
         _hadInstallFolder = Directory.Exists(_installDir);
 
-        progress.Report(new UninstallProgress(8, "Stopping Mute MIC..."));
+        progress.Report(new UninstallProgress(8, T("StoppingApp")));
         StopKnownProcesses();
 
-        progress.Report(new UninstallProgress(26, "Removing startup entries..."));
+        progress.Report(new UninstallProgress(26, T("RemovingStartup")));
         DeleteStartupEntries();
 
-        progress.Report(new UninstallProgress(45, "Removing Start Menu shortcuts..."));
+        progress.Report(new UninstallProgress(45, T("RemovingShortcuts")));
         DeleteShortcuts();
 
-        progress.Report(new UninstallProgress(62, "Removing Windows Installed Apps entry and settings..."));
+        progress.Report(new UninstallProgress(62, T("RemovingRegistry")));
         DeleteRegistryKeys();
 
-        progress.Report(new UninstallProgress(82, "Scheduling application file removal..."));
+        progress.Report(new UninstallProgress(82, T("SchedulingRemoval")));
         ScheduleInstallFolderRemoval(_installDir);
 
-        progress.Report(new UninstallProgress(94, "Finishing cleanup..."));
+        progress.Report(new UninstallProgress(94, T("FinishingCleanup")));
+    }
+
+    private string T(string key)
+    {
+        return SetupStrings.Get(_language, key);
     }
 
     private static void StopKnownProcesses()
