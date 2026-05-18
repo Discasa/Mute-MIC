@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$version = '1.1.2'
+$version = '1.1.3'
 $release = Join-Path $root 'release'
 $payload = Join-Path $release 'payload'
 $installerPayload = Join-Path $root 'src\MuteMIC.Installer\Payload'

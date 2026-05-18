@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3 - 2026-05-18
+
+- Changed tray state icons: unmuted/on now uses green and muted/off now uses orange.
+- Preserved the previous theme-based tray icons under `assets/alternative/tray-icons-original`.
+
 ## 1.1.2 - 2026-05-18
 
 - Fixed automatic update installation when the old app launches the installer from inside the installed app folder.

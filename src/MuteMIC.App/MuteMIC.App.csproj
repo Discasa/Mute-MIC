@@ -9,7 +9,7 @@
     <AssemblyName>Mute MIC</AssemblyName>
     <RootNamespace>MuteMIC.App</RootNamespace>
     <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
-    <Version>1.1.2</Version>
+    <Version>1.1.3</Version>
     <Authors>anderson</Authors>
     <Product>Mute MIC</Product>
     <Description>Tray utility that mutes all active Windows audio input devices at once.</Description>
