@@ -30,9 +30,10 @@ Run:
 .\release\Mute MIC Installer.exe
 ```
 
-The installer copies the app to `%LOCALAPPDATA%\Mute MIC`, creates Start Menu
-shortcuts, removes the legacy `MicMute` scheduled task when elevated, and creates
-a new `Mute MIC` logon task with highest privileges.
+The installer copies the app to `%LOCALAPPDATA%\Mute MIC`, creates a `Mute MIC`
+folder in the Start Menu with app and uninstaller shortcuts, registers Mute MIC
+in Windows Installed Apps, removes the legacy `MicMute` scheduled task when
+elevated, and creates a new `Mute MIC` logon task with highest privileges.
 
 The release installer is a standalone package file with the app and uninstaller
 embedded. It is still a framework-dependent .NET build and expects the .NET 10
@@ -48,7 +49,8 @@ kept only as a build artifact for inspection.
 
 ## Uninstall
 
-Use the Start Menu shortcut named `Uninstall Mute MIC`, or run:
+Use Windows Settings > Apps > Installed apps, the Start Menu shortcut named
+`Uninstall Mute MIC`, or run:
 
 ```powershell
 %LOCALAPPDATA%\Mute MIC\Mute MIC Uninstaller.exe

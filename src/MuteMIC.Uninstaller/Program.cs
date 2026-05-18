@@ -7,6 +7,7 @@ internal static class Program
 {
     private const string AppName = "Mute MIC";
     private const string LegacyTaskName = "MicMute";
+    private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
 
     [STAThread]
     private static void Main()
@@ -65,10 +66,14 @@ internal static class Program
     private static void DeleteShortcuts()
     {
         string programs = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+        string startMenuFolder = Path.Combine(programs, AppName);
+
         foreach (string shortcut in new[]
         {
             Path.Combine(programs, $"{AppName}.lnk"),
-            Path.Combine(programs, $"Uninstall {AppName}.lnk")
+            Path.Combine(programs, $"Uninstall {AppName}.lnk"),
+            Path.Combine(startMenuFolder, $"{AppName}.lnk"),
+            Path.Combine(startMenuFolder, $"Uninstall {AppName}.lnk")
         })
         {
             if (File.Exists(shortcut))
@@ -76,12 +81,18 @@ internal static class Program
                 File.Delete(shortcut);
             }
         }
+
+        if (Directory.Exists(startMenuFolder))
+        {
+            Directory.Delete(startMenuFolder, recursive: true);
+        }
     }
 
     private static void DeleteRegistryKeys()
     {
         Registry.CurrentUser.DeleteSubKeyTree(@"Software\Mute MIC", throwOnMissingSubKey: false);
         Registry.CurrentUser.DeleteSubKeyTree(@"Software\MicMute", throwOnMissingSubKey: false);
+        Registry.CurrentUser.DeleteSubKeyTree(UninstallRegistryPath, throwOnMissingSubKey: false);
     }
 
     private static void ScheduleInstallFolderRemoval(string installDir)

@@ -1,10 +1,11 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$version = '1.0.1'
+$version = '1.0.2'
 $release = Join-Path $root 'release'
 $payload = Join-Path $release 'payload'
 $installerPayload = Join-Path $root 'src\MuteMIC.Installer\Payload'
+$appIcon = Join-Path $root 'src\MuteMIC.App\Assets\Icons\app.ico'
 
 if (Test-Path -LiteralPath $release) {
     $resolvedRelease = (Resolve-Path -LiteralPath $release).Path
@@ -32,8 +33,10 @@ $commonPublishArgs = @(
 
 dotnet publish (Join-Path $root 'src\MuteMIC.App\MuteMIC.App.csproj') @commonPublishArgs -o $payload
 dotnet publish (Join-Path $root 'src\MuteMIC.Uninstaller\MuteMIC.Uninstaller.csproj') @commonPublishArgs -o $payload
+Copy-Item -LiteralPath $appIcon -Destination (Join-Path $payload 'Mute MIC.ico') -Force
 Copy-Item -LiteralPath (Join-Path $payload 'Mute MIC.exe') -Destination $installerPayload -Force
 Copy-Item -LiteralPath (Join-Path $payload 'Mute MIC Uninstaller.exe') -Destination $installerPayload -Force
+Copy-Item -LiteralPath (Join-Path $payload 'Mute MIC.ico') -Destination $installerPayload -Force
 dotnet publish (Join-Path $root 'src\MuteMIC.Installer\MuteMIC.Installer.csproj') @commonPublishArgs -o $release
 
 $zipPath = Join-Path $release "Mute-MIC-$version-win-x64.zip"

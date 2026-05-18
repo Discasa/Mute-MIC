@@ -111,6 +111,24 @@ Scheduled task:
 Mute MIC
 ```
 
+Start Menu folder:
+
+```text
+%APPDATA%\Microsoft\Windows\Start Menu\Programs\Mute MIC
+```
+
+Windows Installed Apps entry:
+
+```text
+HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC
+```
+
+The entry uses the installed app icon:
+
+```text
+%LOCALAPPDATA%\Mute MIC\Mute MIC.ico
+```
+
 The installer also attempts to remove the legacy task:
 
 ```text

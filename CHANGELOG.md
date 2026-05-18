@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.2 - 2026-05-18
+
+- Improved the installer to create a dedicated Start Menu folder with app and uninstaller shortcuts.
+- Added a Windows Installed Apps entry through the current-user uninstall registry key.
+- Added the app icon as an installed `.ico` file and use it for Start Menu shortcuts and Windows Installed Apps.
+- Updated the uninstaller to remove the Start Menu folder and Installed Apps entry.
+
 ## 1.0.1 - 2026-05-17
 
 - Fixed global hotkey handling by moving registration to a dedicated native message window.

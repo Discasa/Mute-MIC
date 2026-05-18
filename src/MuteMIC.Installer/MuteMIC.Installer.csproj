@@ -10,12 +10,12 @@
     <RootNamespace>MuteMIC.Installer</RootNamespace>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Product>Mute MIC Installer</Product>
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Payload\*.exe" LogicalName="Payload.%(Filename)%(Extension)" Condition="Exists('Payload')" />
+    <EmbeddedResource Include="Payload\*.*" LogicalName="Payload.%(Filename)%(Extension)" Condition="Exists('Payload')" />
   </ItemGroup>
 
 </Project>
