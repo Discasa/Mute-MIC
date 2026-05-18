@@ -6,10 +6,10 @@ namespace MuteMIC.App;
 
 internal sealed class TrayMenuWindow : Form
 {
-    private const int ShadowMargin = 18;
+    private const int ShadowMargin = 10;
     private const int MenuWidth = 232;
     private const int SubMenuWidth = 184;
-    private const int MenuGap = 6;
+    private const int MenuGap = 0;
     private const int ItemHeight = 34;
     private const int SeparatorHeight = 9;
     private const int MenuPadding = 8;
@@ -30,6 +30,7 @@ internal sealed class TrayMenuWindow : Form
     private readonly Color _separatorColor;
     private readonly Color _textColor;
     private readonly Color _mutedTextColor;
+    private readonly System.Windows.Forms.Timer _outsideClickTimer = new() { Interval = 30 };
     private Rectangle _mainPanelRect;
     private Rectangle _submenuPanelRect;
     private Rectangle _hotkeysRect;
@@ -43,6 +44,7 @@ internal sealed class TrayMenuWindow : Form
     private string? _hoveredItem;
     private ActiveSubmenu _activeSubmenu = ActiveSubmenu.None;
     private bool _closingByAction;
+    private bool _isClosing;
 
     private static int MainMenuHeight => (MenuPadding * 2) + (ItemHeight * 4) + SeparatorHeight;
     private static int SubMenuHeight => (MenuPadding * 2) + (ItemHeight * 2);
@@ -93,6 +95,7 @@ internal sealed class TrayMenuWindow : Form
             | ControlStyles.UserPaint,
             true);
 
+        _outsideClickTimer.Tick += OutsideClickTimer_Tick;
         PositionNear(anchor);
     }
 
@@ -110,14 +113,18 @@ internal sealed class TrayMenuWindow : Form
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
+        Activate();
         Capture = true;
+        _outsideClickTimer.Start();
         RenderLayeredWindow();
     }
 
-    protected override void OnFormClosed(FormClosedEventArgs e)
+    protected override void OnFormClosing(FormClosingEventArgs e)
     {
+        _isClosing = true;
+        _outsideClickTimer.Stop();
         Capture = false;
-        base.OnFormClosed(e);
+        base.OnFormClosing(e);
     }
 
     protected override void OnDeactivate(EventArgs e)
@@ -147,10 +154,9 @@ internal sealed class TrayMenuWindow : Form
     protected override void OnMouseLeave(EventArgs e)
     {
         base.OnMouseLeave(e);
-        if (_hoveredItem is not null || _activeSubmenu != ActiveSubmenu.None)
+        if (_hoveredItem is not null)
         {
             _hoveredItem = null;
-            SetActiveSubmenu(ActiveSubmenu.None);
             RenderLayeredWindow();
         }
     }
@@ -206,12 +212,26 @@ internal sealed class TrayMenuWindow : Form
     protected override void WndProc(ref Message m)
     {
         const int WM_CAPTURECHANGED = 0x0215;
-        if (m.Msg == WM_CAPTURECHANGED && !_closingByAction && !IsDisposed)
+        if (m.Msg == WM_CAPTURECHANGED && !_closingByAction && !_isClosing && !IsDisposed)
         {
-            BeginInvoke(Close);
+            BeginInvoke(new Action(Close));
         }
 
         base.WndProc(ref m);
+    }
+
+    private void OutsideClickTimer_Tick(object? sender, EventArgs e)
+    {
+        if (_isClosing || Control.MouseButtons == MouseButtons.None)
+        {
+            return;
+        }
+
+        Point clientPoint = PointToClient(Cursor.Position);
+        if (!IsInOpenMenuSurface(clientPoint))
+        {
+            Close();
+        }
     }
 
     private void CloseThen(Action action)
@@ -321,7 +341,7 @@ internal sealed class TrayMenuWindow : Form
 
     private bool IsBetweenItemAndSubmenu(Point point, Rectangle itemRect)
     {
-        Rectangle bridge = new(itemRect.Right, itemRect.Top, MenuGap + 4, itemRect.Height);
+        Rectangle bridge = new(itemRect.Right - 2, itemRect.Top - 2, MenuGap + 14, itemRect.Height + 4);
         return bridge.Contains(point);
     }
 
@@ -408,11 +428,11 @@ internal sealed class TrayMenuWindow : Form
 
     private void DrawPanel(Graphics graphics, Rectangle rect)
     {
-        for (int i = 8; i >= 1; i--)
+        for (int i = 5; i >= 1; i--)
         {
-            int alpha = 5 + (i * 3);
+            int alpha = 3 + (i * 3);
             Rectangle shadowRect = Rectangle.Inflate(rect, i, i);
-            shadowRect.Offset(0, 2);
+            shadowRect.Offset(0, 1);
             using GraphicsPath shadowPath = RoundedRect(shadowRect, MenuCornerRadius + i);
             using SolidBrush shadowBrush = new(Color.FromArgb(alpha, Color.Black));
             graphics.FillPath(shadowBrush, shadowPath);
@@ -495,7 +515,7 @@ internal sealed class TrayMenuWindow : Form
         int left = anchor.X - MenuWidth + 16 - ShadowMargin;
         int top = anchor.Y - MainMenuHeight - ShadowMargin - 4;
 
-        left = Math.Max(workArea.Left, Math.Min(left, workArea.Right - CollapsedWindowWidth));
+        left = Math.Max(workArea.Left, Math.Min(left, workArea.Right - ExpandedWindowWidth));
         top = Math.Max(workArea.Top, Math.Min(top, workArea.Bottom - WindowHeight));
 
         Location = new Point(left, top);

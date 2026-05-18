@@ -11,8 +11,7 @@ namespace MuteMIC.App;
 internal sealed class AppUpdateService : IDisposable
 {
     private static readonly Uri LatestReleaseUri = new("https://api.github.com/repos/Discasa/Mute-MIC/releases/latest");
-    private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(20);
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan StartupCheckDelay = TimeSpan.FromSeconds(20);
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     private readonly CancellationTokenSource _cancellation = new();
@@ -37,11 +36,10 @@ internal sealed class AppUpdateService : IDisposable
     {
         try
         {
-            await Task.Delay(InitialDelay, cancellationToken);
-            while (!cancellationToken.IsCancellationRequested && !_updateStarted)
+            await Task.Delay(StartupCheckDelay, cancellationToken);
+            if (!cancellationToken.IsCancellationRequested && !_updateStarted)
             {
                 await CheckForUpdateAsync(cancellationToken);
-                await Task.Delay(CheckInterval, cancellationToken);
             }
         }
         catch (OperationCanceledException)

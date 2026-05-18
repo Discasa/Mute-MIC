@@ -145,8 +145,8 @@ MicMute
 
 ## Updates
 
-The app checks GitHub Releases for `Discasa/Mute-MIC` while it is running.
-The first check runs shortly after startup and later checks repeat periodically.
+The app checks GitHub Releases for `Discasa/Mute-MIC` once shortly after
+startup.
 
 When the latest stable release tag is newer than the installed app version, the
 app downloads the release package, verifies the GitHub SHA256 digest when the

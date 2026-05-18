@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1 - 2026-05-18
+
+- Reduced tray menu shadow and removed the dead gap between the main menu and submenus.
+- Improved tray menu placement near the screen edge so submenus remain reachable.
+- Hardened outside-click detection while the custom tray menu is open.
+- Changed automatic updates to check only once after app startup instead of polling every two minutes.
+
 ## 1.2.0 - 2026-05-18
 
 - Added a tray `Color scheme` submenu with monochromatic and colorful icon modes.
