@@ -21,6 +21,7 @@ internal sealed class UninstallerForm : Form
     private const string AppName = "Mute MIC";
     private const string LegacyTaskName = "MicMute";
     private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
+    private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     private readonly string _installDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -81,7 +82,7 @@ internal sealed class UninstallerForm : Form
         _titleLabel.Size = new Size(504, 36);
         _titleLabel.TextAlign = ContentAlignment.MiddleLeft;
 
-        _bodyLabel.Text = "This will remove Mute MIC, startup tasks, Start Menu shortcuts, Windows Installed Apps integration, and settings.";
+        _bodyLabel.Text = "This will remove Mute MIC, startup entries, Start Menu shortcuts, Windows Installed Apps integration, and settings.";
         _bodyLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         _bodyLabel.Location = new Point(30, 72);
         _bodyLabel.Size = new Size(500, 42);
@@ -205,9 +206,8 @@ internal sealed class UninstallerForm : Form
         progress.Report(new UninstallProgress(8, "Stopping Mute MIC..."));
         StopKnownProcesses();
 
-        progress.Report(new UninstallProgress(26, "Removing startup tasks..."));
-        DeleteTask(AppName);
-        DeleteTask(LegacyTaskName);
+        progress.Report(new UninstallProgress(26, "Removing startup entries..."));
+        DeleteStartupEntries();
 
         progress.Report(new UninstallProgress(45, "Removing Start Menu shortcuts..."));
         DeleteShortcuts();
@@ -277,6 +277,15 @@ internal sealed class UninstallerForm : Form
         Registry.CurrentUser.DeleteSubKeyTree(UninstallRegistryPath, throwOnMissingSubKey: false);
     }
 
+    private static void DeleteStartupEntries()
+    {
+        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(StartupRegistryPath, writable: true);
+        key?.DeleteValue(AppName, throwOnMissingValue: false);
+        key?.DeleteValue(LegacyTaskName, throwOnMissingValue: false);
+        DeleteTask(AppName);
+        DeleteTask(LegacyTaskName);
+    }
+
     private static void ScheduleInstallFolderRemoval(string installDir)
     {
         if (!Directory.Exists(installDir))
@@ -320,6 +329,7 @@ internal sealed class UninstallerForm : Form
                 "-File",
                 scriptPath
             },
+            WorkingDirectory = Path.GetTempPath(),
             UseShellExecute = false,
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden
@@ -376,7 +386,11 @@ internal sealed class UninstallerForm : Form
         foreach (Control control in Controls.Cast<Control>().SelectMany(FlattenControls))
         {
             control.ForeColor = fore;
-            if (control is SetupFieldPanel fieldPanel)
+            if (control.Parent is SetupFieldPanel parentFieldPanel)
+            {
+                control.BackColor = parentFieldPanel.FillColor;
+            }
+            else if (control is SetupFieldPanel fieldPanel)
             {
                 fieldPanel.BackColor = back;
                 fieldPanel.FillColor = panel;

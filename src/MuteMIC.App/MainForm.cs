@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Media;
 using Microsoft.Win32;
@@ -24,6 +25,7 @@ public sealed class MainForm : Form
     private readonly ModernButton _muteReset = new();
     private readonly ModernButton _unmuteReset = new();
     private readonly System.Windows.Forms.Timer _refreshTimer = new();
+    private readonly AppUpdateService _updateService = new();
     private readonly SoundPlayer _onPlayer;
     private readonly SoundPlayer _offPlayer;
     private readonly MemoryStream _onSoundStream;
@@ -67,6 +69,7 @@ public sealed class MainForm : Form
 
         _refreshTimer.Interval = 1000;
         _refreshTimer.Tick += (_, _) => RefreshAudioStatus(false);
+        _updateService.UpdateInstallerReady += UpdateService_UpdateInstallerReady;
 
         SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
     }
@@ -78,6 +81,7 @@ public sealed class MainForm : Form
         RegisterHotkeys();
         RefreshAudioStatus(false);
         _refreshTimer.Start();
+        _updateService.Start();
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -113,6 +117,8 @@ public sealed class MainForm : Form
         {
             SystemEvents.UserPreferenceChanged -= SystemEvents_UserPreferenceChanged;
             _refreshTimer.Dispose();
+            _updateService.UpdateInstallerReady -= UpdateService_UpdateInstallerReady;
+            _updateService.Dispose();
             _globalHotkeys?.Dispose();
             _trayIcon.Dispose();
             _trayMenuWindow?.Close();
@@ -459,5 +465,31 @@ public sealed class MainForm : Form
         {
             ApplyTheme();
         }
+    }
+
+    private void UpdateService_UpdateInstallerReady(object? sender, UpdateInstallerReadyEventArgs e)
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        BeginInvoke(() =>
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(e.InstallerPath)
+                {
+                    UseShellExecute = false,
+                    ArgumentList = { "--silent", "--from-update" }
+                });
+                _exitRequested = true;
+                Close();
+            }
+            catch
+            {
+                // Update errors are already logged by the updater service.
+            }
+        });
     }
 }

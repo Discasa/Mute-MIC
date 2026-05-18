@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 - 2026-05-18
+
+- Added automatic per-user updates from GitHub Releases, including package download, optional SHA256 digest verification, silent installer launch, app restart, and update error logging.
+- Changed startup from an elevated scheduled task to `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+- Changed the installer and uninstaller manifests to run as the current user instead of requesting administrator privileges.
+- Removed the run-as-administrator shortcut flag while keeping cleanup for legacy scheduled tasks.
+- Updated documentation for the per-user install, startup, uninstall, and update flow.
+
 ## 1.0.4 - 2026-05-18
 
 - Replaced the WPF tray popup with a custom layered WinForms popup to keep the smooth Windows 11 look without WPF runtime crashes in the installed single-file app.

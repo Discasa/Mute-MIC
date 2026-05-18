@@ -9,10 +9,27 @@ namespace MuteMIC.Installer;
 internal static class Program
 {
     [STAThread]
-    private static void Main()
+    private static int Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new InstallerForm());
+        InstallerOptions options = InstallerOptions.Parse(args);
+        if (options.Silent)
+        {
+            return InstallerForm.RunSilent(options);
+        }
+
+        Application.Run(new InstallerForm(options));
+        return 0;
+    }
+}
+
+internal sealed record InstallerOptions(bool Silent, bool FromUpdate)
+{
+    public static InstallerOptions Parse(string[] args)
+    {
+        bool silent = args.Any(arg => string.Equals(arg, "--silent", StringComparison.OrdinalIgnoreCase));
+        bool fromUpdate = args.Any(arg => string.Equals(arg, "--from-update", StringComparison.OrdinalIgnoreCase));
+        return new InstallerOptions(silent, fromUpdate);
     }
 }
 
@@ -21,9 +38,10 @@ internal sealed class InstallerForm : Form
     private const string AppName = "Mute MIC";
     private const string LegacyTaskName = "MicMute";
     private const string UninstallerName = "Mute MIC Uninstaller.exe";
-    private const string AppVersion = "1.0.4";
+    private const string AppVersion = "1.1.0";
     private const string Publisher = "anderson";
     private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
+    private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
     private readonly string _installDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -39,7 +57,7 @@ internal sealed class InstallerForm : Form
     private bool _installComplete;
     private bool _installing;
 
-    public InstallerForm()
+    public InstallerForm(InstallerOptions options)
     {
         Text = $"{AppName} Installer";
         Icon? icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
@@ -57,6 +75,21 @@ internal sealed class InstallerForm : Form
         FormBorderStyle = FormBorderStyle.FixedSingle;
         BuildUi();
         ApplyTheme();
+    }
+
+    public static int RunSilent(InstallerOptions options)
+    {
+        try
+        {
+            using InstallerForm form = new(options);
+            form.Install(new Progress<InstallProgress>());
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            LogInstallError(ex);
+            return 1;
+        }
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -206,9 +239,8 @@ internal sealed class InstallerForm : Form
         progress.Report(new InstallProgress(5, "Preparing installation..."));
         StopKnownProcesses();
 
-        progress.Report(new InstallProgress(18, "Removing old startup tasks..."));
-        DeleteTask(LegacyTaskName);
-        DeleteTask(AppName);
+        progress.Report(new InstallProgress(18, "Removing old startup entries..."));
+        DeleteStartupEntries();
 
         progress.Report(new InstallProgress(32, "Creating installation folder..."));
         PrepareInstallDirectory(_installDir);
@@ -226,14 +258,14 @@ internal sealed class InstallerForm : Form
         progress.Report(new InstallProgress(78, "Registering Windows Installed Apps entry..."));
         RegisterInstalledApp(_installDir, appExe, uninstallerExe, appIcon);
 
-        progress.Report(new InstallProgress(90, "Configuring startup task..."));
-        if (string.Equals(Environment.GetEnvironmentVariable("MUTEMIC_SKIP_LOGON_TASK"), "1", StringComparison.Ordinal))
+        progress.Report(new InstallProgress(90, "Configuring startup entry..."));
+        if (string.Equals(Environment.GetEnvironmentVariable("MUTEMIC_SKIP_STARTUP"), "1", StringComparison.Ordinal))
         {
-            progress.Report(new InstallProgress(90, "Skipping startup task for this test run..."));
+            progress.Report(new InstallProgress(90, "Skipping startup entry for this test run..."));
         }
         else
         {
-            CreateLogonTask(appExe);
+            CreateStartupEntry(appExe);
         }
 
         progress.Report(new InstallProgress(96, "Starting Mute MIC..."));
@@ -339,7 +371,6 @@ internal sealed class InstallerForm : Form
 
         string iconLocation = File.Exists(appIcon) ? appIcon : $"{appExe},0";
         CreateShortcut(appShortcut, appExe, AppName, iconLocation);
-        SetShortcutRunAsAdministrator(appShortcut);
 
         if (File.Exists(uninstallerExe))
         {
@@ -401,30 +432,19 @@ internal sealed class InstallerForm : Form
         shortcut.Save();
     }
 
-    private static void SetShortcutRunAsAdministrator(string shortcutPath)
+    private static void CreateStartupEntry(string appExe)
     {
-        byte[] bytes = File.ReadAllBytes(shortcutPath);
-        if (bytes.Length > 0x15)
-        {
-            bytes[0x15] = (byte)(bytes[0x15] | 0x20);
-            File.WriteAllBytes(shortcutPath, bytes);
-        }
+        using RegistryKey key = Registry.CurrentUser.CreateSubKey(StartupRegistryPath);
+        key.SetValue(AppName, $"\"{appExe}\"");
     }
 
-    private static void CreateLogonTask(string appExe)
+    private static void DeleteStartupEntries()
     {
-        RunSchtasks([
-            "/create",
-            "/sc",
-            "ONLOGON",
-            "/tn",
-            AppName,
-            "/tr",
-            $"\"{appExe}\"",
-            "/rl",
-            "HIGHEST",
-            "/f"
-        ], throwOnError: true);
+        using RegistryKey? key = Registry.CurrentUser.OpenSubKey(StartupRegistryPath, writable: true);
+        key?.DeleteValue(AppName, throwOnMissingValue: false);
+        key?.DeleteValue(LegacyTaskName, throwOnMissingValue: false);
+        DeleteTask(LegacyTaskName);
+        DeleteTask(AppName);
     }
 
     private static void DeleteTask(string taskName)
@@ -459,6 +479,23 @@ internal sealed class InstallerForm : Form
         }
     }
 
+    private static void LogInstallError(Exception exception)
+    {
+        try
+        {
+            string logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                AppName);
+            Directory.CreateDirectory(logDir);
+            File.AppendAllText(
+                Path.Combine(logDir, "install.log"),
+                $"[{DateTimeOffset.Now:O}] {exception}{Environment.NewLine}");
+        }
+        catch
+        {
+        }
+    }
+
     private void ApplyTheme()
     {
         bool lightTheme = IsLightTheme();
@@ -482,7 +519,11 @@ internal sealed class InstallerForm : Form
         foreach (Control control in Controls.Cast<Control>().SelectMany(FlattenControls))
         {
             control.ForeColor = fore;
-            if (control is SetupFieldPanel fieldPanel)
+            if (control.Parent is SetupFieldPanel parentFieldPanel)
+            {
+                control.BackColor = parentFieldPanel.FillColor;
+            }
+            else if (control is SetupFieldPanel fieldPanel)
             {
                 fieldPanel.BackColor = back;
                 fieldPanel.FillColor = panel;

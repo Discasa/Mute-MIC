@@ -20,8 +20,8 @@ Audio, such as some ASIO-only workflows, may not follow endpoint mute state.
 The repository contains three .NET projects:
 
 - `src/MuteMIC.App`: tray application.
-- `src/MuteMIC.Installer`: elevated installer.
-- `src/MuteMIC.Uninstaller`: elevated uninstaller.
+- `src/MuteMIC.Installer`: per-user installer.
+- `src/MuteMIC.Uninstaller`: per-user uninstaller.
 
 The app is a modern .NET Windows Forms application targeting `net10.0-windows`.
 It uses NAudio for Core Audio endpoint enumeration and mute control.
@@ -89,9 +89,8 @@ volume.
 
 ## Installer
 
-The installer requires administrator privileges because it creates a logon task
-with highest privileges. Elevated launch keeps the global hotkey reliable when
-games or other elevated applications are focused.
+The installer is a per-user installer. It runs as the current user, writes under
+`%LOCALAPPDATA%`, and does not require UAC for normal install or update flows.
 
 The installer uses a guided Windows Forms window with the install location,
 confirmation buttons, progress feedback, and a final installed state.
@@ -108,10 +107,10 @@ Installed location:
 %LOCALAPPDATA%\Mute MIC
 ```
 
-Scheduled task:
+Startup registry value:
 
 ```text
-Mute MIC
+HKCU\Software\Microsoft\Windows\CurrentVersion\Run\Mute MIC
 ```
 
 Start Menu folder:
@@ -138,10 +137,28 @@ The installer also attempts to remove the legacy task:
 MicMute
 ```
 
+## Updates
+
+The app checks GitHub Releases for `Discasa/Mute-MIC` while it is running.
+The first check runs shortly after startup and later checks repeat periodically.
+
+When the latest stable release tag is newer than the installed app version, the
+app downloads the release package, verifies the GitHub SHA256 digest when the
+release API provides one, extracts the installer, starts it with:
+
+```text
+--silent --from-update
+```
+
+Then the running app exits. The silent installer removes old startup entries,
+copies the embedded payload into `%LOCALAPPDATA%\Mute MIC`, updates Start Menu
+shortcuts and the Windows Installed Apps entry, writes the current-user startup
+registry value, and starts the updated app again.
+
 ## Uninstaller
 
-The uninstaller also requires administrator privileges so it can remove elevated
-scheduled tasks. It shows a confirmation window, reports progress while removing
-shortcuts, registry entries, tasks, and settings, then shows a final completion
-state. If the application folder is already gone, it reports that Mute MIC was
-already uninstalled and still cleans up remaining entries.
+The uninstaller runs as the current user. It shows a confirmation window,
+reports progress while removing shortcuts, registry entries, startup entries,
+legacy tasks when possible, and settings, then shows a final completion state.
+If the application folder is already gone, it reports that Mute MIC was already
+uninstalled and still cleans up remaining entries.
