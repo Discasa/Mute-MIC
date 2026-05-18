@@ -171,7 +171,7 @@ public sealed class MainForm : Form
         label.TextAlign = ContentAlignment.MiddleLeft;
         label.AutoSize = false;
         label.Margin = labelRow == 0 ? Padding.Empty : new Padding(0, 10, 0, 0);
-        textBox.Dock = DockStyle.Fill;
+        textBox.Dock = DockStyle.None;
         textBox.Margin = Padding.Empty;
         resetButton.Dock = DockStyle.Fill;
         resetButton.Margin = new Padding(12, 4, 0, 4);

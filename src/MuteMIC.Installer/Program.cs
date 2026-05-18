@@ -38,7 +38,7 @@ internal sealed class InstallerForm : Form
     private const string AppName = "Mute MIC";
     private const string LegacyTaskName = "MicMute";
     private const string UninstallerName = "Mute MIC Uninstaller.exe";
-    private const string AppVersion = "1.1.0";
+    private const string AppVersion = "1.1.1";
     private const string Publisher = "anderson";
     private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
     private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";

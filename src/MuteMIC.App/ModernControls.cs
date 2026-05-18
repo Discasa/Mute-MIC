@@ -142,6 +142,7 @@ internal sealed class ModernFieldPanel : Panel
     public void Host(TextBox textBox)
     {
         _textBox = textBox;
+        textBox.Dock = DockStyle.None;
         textBox.BorderStyle = BorderStyle.None;
         textBox.Margin = Padding.Empty;
         textBox.GotFocus += (_, _) => Invalidate();

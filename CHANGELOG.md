@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 - 2026-05-18
+
+- Fixed hotkey editor input alignment by letting the custom field panel size and center the native text boxes.
+- Fixed focused hotkey field borders being clipped by the hosted text box.
+
 ## 1.1.0 - 2026-05-18
 
 - Added automatic per-user updates from GitHub Releases, including package download, optional SHA256 digest verification, silent installer launch, app restart, and update error logging.
