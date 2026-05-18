@@ -42,7 +42,7 @@ kept only as a build artifact for inspection.
 ## Use
 
 - Left-click the tray icon to toggle all audio inputs.
-- Right-click the tray icon for mute, unmute, hotkeys, language, and exit.
+- Right-click the tray icon for hotkeys, language, and exit.
 - Open `Hotkeys` to change or clear the three global hotkeys.
 - Press `Delete`, `Backspace`, or `Esc` inside a hotkey field to clear it.
 

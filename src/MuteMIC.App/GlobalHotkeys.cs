@@ -6,29 +6,12 @@ internal sealed class GlobalHotkeys : IDisposable
 {
     private const int WmHotkey = 0x0312;
     private const uint ModNoRepeat = 0x4000;
-    private readonly IntPtr _handle;
+    private readonly HotkeyMessageWindow _window = new();
     private readonly Dictionary<int, Action> _actions = [];
 
-    public GlobalHotkeys(IntPtr handle)
+    public GlobalHotkeys()
     {
-        _handle = handle;
-    }
-
-    public bool HandleMessage(ref Message message)
-    {
-        if (message.Msg != WmHotkey)
-        {
-            return false;
-        }
-
-        int id = message.WParam.ToInt32();
-        if (_actions.TryGetValue(id, out Action? action))
-        {
-            action();
-            return true;
-        }
-
-        return false;
+        _window.HotkeyPressed += OnHotkeyPressed;
     }
 
     public void Register(int id, HotkeyDefinition hotkey, Action action)
@@ -40,7 +23,7 @@ internal sealed class GlobalHotkeys : IDisposable
         }
 
         uint modifiers = (uint)hotkey.Modifiers | ModNoRepeat;
-        if (!RegisterHotKey(_handle, id, modifiers, (uint)hotkey.Key))
+        if (!RegisterHotKey(_window.Handle, id, modifiers, (uint)hotkey.Key))
         {
             throw new InvalidOperationException($"Could not register hotkey {hotkey.ToDisplayString("en")}.");
         }
@@ -52,7 +35,7 @@ internal sealed class GlobalHotkeys : IDisposable
     {
         if (_actions.Remove(id))
         {
-            UnregisterHotKey(_handle, id);
+            UnregisterHotKey(_window.Handle, id);
         }
     }
 
@@ -61,6 +44,38 @@ internal sealed class GlobalHotkeys : IDisposable
         foreach (int id in _actions.Keys.ToArray())
         {
             Unregister(id);
+        }
+
+        _window.HotkeyPressed -= OnHotkeyPressed;
+        _window.DestroyHandle();
+    }
+
+    private void OnHotkeyPressed(object? sender, int id)
+    {
+        if (_actions.TryGetValue(id, out Action? action))
+        {
+            action();
+        }
+    }
+
+    private sealed class HotkeyMessageWindow : NativeWindow
+    {
+        public event EventHandler<int>? HotkeyPressed;
+
+        public HotkeyMessageWindow()
+        {
+            CreateHandle(new CreateParams());
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WmHotkey)
+            {
+                HotkeyPressed?.Invoke(this, m.WParam.ToInt32());
+                return;
+            }
+
+            base.WndProc(ref m);
         }
     }
 

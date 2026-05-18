@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
+$version = '1.0.1'
 $release = Join-Path $root 'release'
 $payload = Join-Path $release 'payload'
 $installerPayload = Join-Path $root 'src\MuteMIC.Installer\Payload'
@@ -35,7 +36,7 @@ Copy-Item -LiteralPath (Join-Path $payload 'Mute MIC.exe') -Destination $install
 Copy-Item -LiteralPath (Join-Path $payload 'Mute MIC Uninstaller.exe') -Destination $installerPayload -Force
 dotnet publish (Join-Path $root 'src\MuteMIC.Installer\MuteMIC.Installer.csproj') @commonPublishArgs -o $release
 
-$zipPath = Join-Path $release 'Mute-MIC-1.0.0-win-x64.zip'
+$zipPath = Join-Path $release "Mute-MIC-$version-win-x64.zip"
 $zipSource = Join-Path $release 'Mute MIC Installer.exe'
 Compress-Archive -LiteralPath $zipSource -DestinationPath $zipPath -Force
 

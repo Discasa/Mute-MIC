@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 - 2026-05-17
+
+- Fixed global hotkey handling by moving registration to a dedicated native message window.
+- Removed toggle, mute, and unmute actions from the tray menu.
+- Reworked tray tooltip text to show only the click action and configured toggle hotkey.
+- Removed the white tray menu margin and added a themed rounded menu renderer.
+- Applied Windows 11 frame colors and rounded-corner preference to the hotkey window.
+
 ## 1.0.0 - 2026-05-17
 
 - Rebuilt the utility as a modern .NET Windows Forms app.

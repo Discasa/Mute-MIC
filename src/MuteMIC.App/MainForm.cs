@@ -13,10 +13,7 @@ public sealed class MainForm : Form
     private readonly SettingsStore _settingsStore = new();
     private readonly AppSettings _settings;
     private readonly NotifyIcon _trayIcon;
-    private readonly ContextMenuStrip _trayMenu = new();
-    private readonly ToolStripMenuItem _toggleAllItem = new();
-    private readonly ToolStripMenuItem _muteAllItem = new();
-    private readonly ToolStripMenuItem _unmuteAllItem = new();
+    private readonly ThemedContextMenuStrip _trayMenu = new();
     private readonly ToolStripMenuItem _hotkeysItem = new();
     private readonly ToolStripMenuItem _languageItem = new();
     private readonly ToolStripMenuItem _englishItem = new();
@@ -83,10 +80,16 @@ public sealed class MainForm : Form
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
-        _globalHotkeys = new GlobalHotkeys(Handle);
+        _globalHotkeys = new GlobalHotkeys();
         RegisterHotkeys();
         RefreshAudioStatus(false);
         _refreshTimer.Start();
+    }
+
+    protected override void OnHandleCreated(EventArgs e)
+    {
+        base.OnHandleCreated(e);
+        ApplyTheme();
     }
 
     protected override void OnShown(EventArgs e)
@@ -94,16 +97,6 @@ public sealed class MainForm : Form
         base.OnShown(e);
         Hide();
         ShowInTaskbar = false;
-    }
-
-    protected override void WndProc(ref Message m)
-    {
-        if (_globalHotkeys?.HandleMessage(ref m) == true)
-        {
-            return;
-        }
-
-        base.WndProc(ref m);
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
@@ -142,9 +135,6 @@ public sealed class MainForm : Form
 
     private void BuildMenu()
     {
-        _toggleAllItem.Click += (_, _) => ExecuteAudioOperation(() => _audioService.ToggleAll());
-        _muteAllItem.Click += (_, _) => ExecuteAudioOperation(() => _audioService.SetAllMuted(true));
-        _unmuteAllItem.Click += (_, _) => ExecuteAudioOperation(() => _audioService.SetAllMuted(false));
         _hotkeysItem.Click += (_, _) => ShowSettingsWindow();
         _exitItem.Click += (_, _) =>
         {
@@ -155,12 +145,14 @@ public sealed class MainForm : Form
         _englishItem.Click += (_, _) => SetLanguage("en");
         _portugueseItem.Click += (_, _) => SetLanguage("pt-BR");
         _languageItem.DropDownItems.AddRange([_englishItem, _portugueseItem]);
+        if (_languageItem.DropDown is ToolStripDropDownMenu languageMenu)
+        {
+            languageMenu.ShowImageMargin = false;
+            languageMenu.ShowCheckMargin = false;
+            languageMenu.Padding = new Padding(6);
+        }
 
         _trayMenu.Items.AddRange([
-            _toggleAllItem,
-            _muteAllItem,
-            _unmuteAllItem,
-            new ToolStripSeparator(),
             _hotkeysItem,
             _languageItem,
             new ToolStripSeparator(),
@@ -313,12 +305,13 @@ public sealed class MainForm : Form
             return Strings.Get(_settings.Language, "NoInputs");
         }
 
-        string status = allMuted == true
-            ? Strings.Get(_settings.Language, "AllMuted")
-            : Strings.Get(_settings.Language, "InputsOpen");
-        string count = string.Format(Strings.Get(_settings.Language, "DeviceCount"), devices.Count);
-        string firstDevice = devices[0].Name;
-        string tooltip = $"{status} - {count} - {firstDevice}";
+        string action = allMuted == true
+            ? Strings.Get(_settings.Language, "ClickToUnmute")
+            : Strings.Get(_settings.Language, "ClickToMute");
+        string hotkey = _toggleHotkeyBox.Hotkey.IsEmpty
+            ? string.Empty
+            : $" ({_toggleHotkeyBox.Hotkey.ToDisplayString(_settings.Language)})";
+        string tooltip = $"{action}{hotkey}";
         return tooltip[..Math.Min(tooltip.Length, 63)];
     }
 
@@ -350,9 +343,6 @@ public sealed class MainForm : Form
     {
         string language = _settings.Language;
         Text = Strings.Get(language, "AppName");
-        _toggleAllItem.Text = Strings.Get(language, "ToggleAll");
-        _muteAllItem.Text = Strings.Get(language, "MuteAll");
-        _unmuteAllItem.Text = Strings.Get(language, "UnmuteAll");
         _hotkeysItem.Text = Strings.Get(language, "Hotkeys");
         _languageItem.Text = Strings.Get(language, "Language");
         _englishItem.Text = Strings.Get(language, "English");
@@ -378,7 +368,10 @@ public sealed class MainForm : Form
     private void ApplyTheme()
     {
         bool lightTheme = ThemeService.IsLightTheme();
-        ThemeService.ApplyTitleBar(this, lightTheme);
+        if (IsHandleCreated)
+        {
+            ThemeService.ApplyWindowFrame(this, lightTheme);
+        }
 
         Color backColor = lightTheme ? Color.White : Color.FromArgb(32, 32, 32);
         Color foreColor = lightTheme ? Color.FromArgb(24, 24, 24) : Color.White;
@@ -387,8 +380,10 @@ public sealed class MainForm : Form
 
         BackColor = backColor;
         ForeColor = foreColor;
-        _trayMenu.BackColor = backColor;
-        _trayMenu.ForeColor = foreColor;
+        _trayMenu.ApplyTheme(lightTheme);
+        _languageItem.DropDown.BackColor = _trayMenu.BackColor;
+        _languageItem.DropDown.ForeColor = _trayMenu.ForeColor;
+        _languageItem.DropDown.Renderer = new TrayMenuRenderer(lightTheme);
 
         foreach (Control control in Controls.Cast<Control>().SelectMany(FlattenControls))
         {
