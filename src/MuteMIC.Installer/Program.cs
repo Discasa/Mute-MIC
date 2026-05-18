@@ -11,6 +11,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        Directory.SetCurrentDirectory(Path.GetTempPath());
         ApplicationConfiguration.Initialize();
         InstallerOptions options = InstallerOptions.Parse(args);
         if (options.Silent)
@@ -38,7 +39,7 @@ internal sealed class InstallerForm : Form
     private const string AppName = "Mute MIC";
     private const string LegacyTaskName = "MicMute";
     private const string UninstallerName = "Mute MIC Uninstaller.exe";
-    private const string AppVersion = "1.1.1";
+    private const string AppVersion = "1.1.2";
     private const string Publisher = "anderson";
     private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
     private const string StartupRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
@@ -319,10 +320,30 @@ internal sealed class InstallerForm : Form
 
         if (Directory.Exists(resolvedInstallDir))
         {
-            Directory.Delete(resolvedInstallDir, recursive: true);
+            DeleteDirectoryWithRetries(resolvedInstallDir);
         }
 
         Directory.CreateDirectory(resolvedInstallDir);
+    }
+
+    private static void DeleteDirectoryWithRetries(string directory)
+    {
+        Exception? lastError = null;
+        for (int attempt = 0; attempt < 30; attempt++)
+        {
+            try
+            {
+                Directory.Delete(directory, recursive: true);
+                return;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                lastError = ex;
+                Thread.Sleep(1000);
+            }
+        }
+
+        throw new IOException($"Could not remove the previous installation folder: {directory}", lastError);
     }
 
     private static void InstallPayload(string installDir)

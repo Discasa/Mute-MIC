@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2 - 2026-05-18
+
+- Fixed automatic update installation when the old app launches the installer from inside the installed app folder.
+- Added retry logic while replacing the previous installation folder during silent updates.
+- Set the updater-launched installer working directory to the temp folder for future updates.
+
 ## 1.1.1 - 2026-05-18
 
 - Fixed hotkey editor input alignment by letting the custom field panel size and center the native text boxes.

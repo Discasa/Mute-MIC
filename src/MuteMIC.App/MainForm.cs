@@ -481,6 +481,7 @@ public sealed class MainForm : Form
                 Process.Start(new ProcessStartInfo(e.InstallerPath)
                 {
                     UseShellExecute = false,
+                    WorkingDirectory = Path.GetTempPath(),
                     ArgumentList = { "--silent", "--from-update" }
                 });
                 _exitRequested = true;

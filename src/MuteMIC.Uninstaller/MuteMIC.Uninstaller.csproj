@@ -10,7 +10,7 @@
     <RootNamespace>MuteMIC.Uninstaller</RootNamespace>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <Product>Mute MIC Uninstaller</Product>
   </PropertyGroup>
 
