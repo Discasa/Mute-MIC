@@ -49,9 +49,14 @@ internal readonly record struct HotkeyDefinition(HotkeyModifiers Modifiers, Keys
 
     public static HotkeyDefinition Parse(string? value, HotkeyDefinition fallback)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value is null)
         {
             return fallback;
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return None;
         }
 
         string normalized = value.Replace(",", "+", StringComparison.Ordinal);

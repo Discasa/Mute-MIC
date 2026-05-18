@@ -1,6 +1,7 @@
 bin/
 obj/
 release/
+src/MuteMIC.Installer/Payload/
 *.user
 *.suo
 *.userosscache

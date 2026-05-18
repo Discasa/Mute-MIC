@@ -26,8 +26,12 @@ internal sealed class SettingsStore
         settings.ToggleHotkey = HotkeyDefinition.Parse(
             key.GetValue("ToggleHotkey") as string,
             new HotkeyDefinition(HotkeyModifiers.Control, Keys.M));
-        settings.MuteHotkey = HotkeyDefinition.Parse(key.GetValue("MuteHotkey") as string, HotkeyDefinition.None);
-        settings.UnmuteHotkey = HotkeyDefinition.Parse(key.GetValue("UnmuteHotkey") as string, HotkeyDefinition.None);
+        settings.MuteHotkey = HotkeyDefinition.Parse(
+            key.GetValue("MuteHotkey") as string,
+            HotkeyDefinition.None);
+        settings.UnmuteHotkey = HotkeyDefinition.Parse(
+            key.GetValue("UnmuteHotkey") as string,
+            HotkeyDefinition.None);
         settings.Language = (key.GetValue("Language") as string) == "pt-BR" ? "pt-BR" : "en";
         return settings;
     }

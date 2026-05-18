@@ -34,6 +34,11 @@ The installer copies the app to `%LOCALAPPDATA%\Mute MIC`, creates Start Menu
 shortcuts, removes the legacy `MicMute` scheduled task when elevated, and creates
 a new `Mute MIC` logon task with highest privileges.
 
+The release installer is a standalone package file with the app and uninstaller
+embedded. It is still a framework-dependent .NET build and expects the .NET 10
+Desktop Runtime on the target machine. The `payload` folder under `release/` is
+kept only as a build artifact for inspection.
+
 ## Use
 
 - Left-click the tray icon to toggle all audio inputs.

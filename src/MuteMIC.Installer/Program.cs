@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 
 namespace MuteMIC.Installer;
 
@@ -18,19 +19,13 @@ internal static class Program
             string installDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 AppName);
-            string payloadDir = Path.Combine(AppContext.BaseDirectory, "payload");
-
-            if (!Directory.Exists(payloadDir))
-            {
-                throw new DirectoryNotFoundException($"Payload folder not found: {payloadDir}");
-            }
 
             StopKnownProcesses();
             DeleteTask(LegacyTaskName);
             DeleteTask(AppName);
 
-            Directory.CreateDirectory(installDir);
-            CopyDirectory(payloadDir, installDir);
+            PrepareInstallDirectory(installDir);
+            InstallPayload(installDir);
 
             string appExe = Path.Combine(installDir, $"{AppName}.exe");
             string uninstallerExe = Path.Combine(installDir, UninstallerName);
@@ -89,6 +84,57 @@ internal static class Program
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target, overwrite: true);
         }
+    }
+
+    private static void PrepareInstallDirectory(string installDir)
+    {
+        string localAppData = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+        string resolvedInstallDir = Path.GetFullPath(installDir);
+        if (!resolvedInstallDir.StartsWith(localAppData, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Refusing to clean unexpected folder: {resolvedInstallDir}");
+        }
+
+        if (Directory.Exists(resolvedInstallDir))
+        {
+            Directory.Delete(resolvedInstallDir, recursive: true);
+        }
+
+        Directory.CreateDirectory(resolvedInstallDir);
+    }
+
+    private static void InstallPayload(string installDir)
+    {
+        string[] resourceNames = Assembly.GetExecutingAssembly()
+            .GetManifestResourceNames()
+            .Where(name => name.StartsWith("Payload.", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (resourceNames.Length > 0)
+        {
+            foreach (string resourceName in resourceNames)
+            {
+                string fileName = resourceName["Payload.".Length..];
+                using Stream? stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                if (stream is null)
+                {
+                    throw new InvalidOperationException($"Embedded payload not found: {resourceName}");
+                }
+
+                using FileStream target = File.Create(Path.Combine(installDir, fileName));
+                stream.CopyTo(target);
+            }
+
+            return;
+        }
+
+        string payloadDir = Path.Combine(AppContext.BaseDirectory, "payload");
+        if (!Directory.Exists(payloadDir))
+        {
+            throw new DirectoryNotFoundException($"Payload folder not found: {payloadDir}");
+        }
+
+        CopyDirectory(payloadDir, installDir);
     }
 
     private static void CreateShortcuts(string appExe, string uninstallerExe)

@@ -14,4 +14,8 @@
     <Product>Mute MIC Installer</Product>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Payload\*.exe" LogicalName="Payload.%(Filename)%(Extension)" Condition="Exists('Payload')" />
+  </ItemGroup>
+
 </Project>
