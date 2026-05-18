@@ -10,8 +10,12 @@
     <RootNamespace>MuteMIC.Uninstaller</RootNamespace>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Product>Mute MIC Uninstaller</Product>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\SetupUi\SetupControls.cs" Link="SetupControls.cs" />
+  </ItemGroup>
 
 </Project>

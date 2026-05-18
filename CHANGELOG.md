@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.4 - 2026-05-18
+
+- Replaced the WPF tray popup with a custom layered WinForms popup to keep the smooth Windows 11 look without WPF runtime crashes in the installed single-file app.
+- Reworked installer and uninstaller windows with cleaner spacing, rounded buttons, rounded location fields, and a Windows 11 style blue progress bar.
+- Improved setup QA behavior by keeping progress/status text separated from final action buttons.
+- Made uninstallation remove the installed application folder reliably after the app and uninstaller release their file locks.
+
 ## 1.0.3 - 2026-05-18
 
 - Added a guided installer window with install location, confirmation, progress, and completion states.

@@ -343,7 +343,7 @@ public sealed class MainForm : Form
             });
         string previousTooltip = _trayIcon.Text;
         _trayIcon.Text = " ";
-        _trayMenuWindow.Closed += (_, _) =>
+        _trayMenuWindow.FormClosed += (_, _) =>
         {
             _trayMenuWindow = null;
             _trayIcon.Text = previousTooltip;

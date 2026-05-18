@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using MuteMIC.SetupUi;
 
 namespace MuteMIC.Installer;
 
@@ -20,7 +21,7 @@ internal sealed class InstallerForm : Form
     private const string AppName = "Mute MIC";
     private const string LegacyTaskName = "MicMute";
     private const string UninstallerName = "Mute MIC Uninstaller.exe";
-    private const string AppVersion = "1.0.3";
+    private const string AppVersion = "1.0.4";
     private const string Publisher = "anderson";
     private const string UninstallRegistryPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Mute MIC";
 
@@ -31,9 +32,10 @@ internal sealed class InstallerForm : Form
     private readonly Label _bodyLabel = new();
     private readonly Label _locationLabel = new();
     private readonly Label _statusLabel = new();
-    private readonly ProgressBar _progressBar = new();
-    private readonly Button _installButton = new();
-    private readonly Button _cancelButton = new();
+    private readonly SetupFieldPanel _locationPanel = new();
+    private readonly SetupProgressBar _progressBar = new();
+    private readonly SetupButton _installButton = new();
+    private readonly SetupButton _cancelButton = new();
     private bool _installComplete;
     private bool _installing;
 
@@ -47,9 +49,10 @@ internal sealed class InstallerForm : Form
         }
 
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(560, 330);
-        MinimumSize = new Size(560, 330);
-        MaximumSize = new Size(560, 330);
+        ClientSize = new Size(560, 360);
+        Size fixedSize = Size;
+        MinimumSize = fixedSize;
+        MaximumSize = fixedSize;
         MaximizeBox = false;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         BuildUi();
@@ -74,82 +77,74 @@ internal sealed class InstallerForm : Form
 
     private void BuildUi()
     {
-        TableLayoutPanel root = new()
-        {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(24),
-            ColumnCount = 1,
-            RowCount = 6
-        };
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
-        root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
-
         _titleLabel.Text = "Install Mute MIC";
-        _titleLabel.Font = new Font(Font.FontFamily, 18, FontStyle.Regular);
-        _titleLabel.Dock = DockStyle.Fill;
+        _titleLabel.Font = new Font("Segoe UI", 18F, FontStyle.Regular, GraphicsUnit.Point);
+        _titleLabel.Location = new Point(28, 28);
+        _titleLabel.Size = new Size(504, 36);
         _titleLabel.TextAlign = ContentAlignment.MiddleLeft;
 
         _bodyLabel.Text = "This setup will install Mute MIC and configure startup, Start Menu shortcuts, and Windows Installed Apps integration.";
-        _bodyLabel.Dock = DockStyle.Fill;
+        _bodyLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        _bodyLabel.Location = new Point(30, 72);
+        _bodyLabel.Size = new Size(500, 42);
         _bodyLabel.AutoEllipsis = true;
 
-        Panel locationPanel = new()
-        {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(14),
-            Margin = new Padding(0, 4, 0, 4)
-        };
         Label locationTitle = new()
         {
             Text = "Install location",
+            Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point),
             Dock = DockStyle.Top,
-            Height = 22
+            Height = 20
         };
         _locationLabel.Text = _installDir;
+        _locationLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         _locationLabel.Dock = DockStyle.Fill;
         _locationLabel.AutoEllipsis = true;
-        locationPanel.Controls.Add(_locationLabel);
-        locationPanel.Controls.Add(locationTitle);
+        _locationPanel.Location = new Point(28, 134);
+        _locationPanel.Size = new Size(504, 58);
+        _locationPanel.Controls.Add(_locationLabel);
+        _locationPanel.Controls.Add(locationTitle);
 
-        _progressBar.Dock = DockStyle.Fill;
-        _progressBar.Minimum = 0;
-        _progressBar.Maximum = 100;
-        _progressBar.Value = 0;
-        _progressBar.Style = ProgressBarStyle.Continuous;
+        _progressBar.Location = new Point(28, 218);
+        _progressBar.Size = new Size(504, 8);
+        _progressBar.ProgressValue = 0;
         _progressBar.Visible = false;
 
         _statusLabel.Text = "Ready to install.";
-        _statusLabel.Dock = DockStyle.Top;
-        _statusLabel.Height = 24;
+        _statusLabel.Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        _statusLabel.Location = new Point(30, 238);
+        _statusLabel.Size = new Size(500, 34);
 
-        FlowLayoutPanel buttons = new()
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.RightToLeft
-        };
         _installButton.Text = "Install";
-        _installButton.Width = 112;
-        _installButton.Height = 34;
+        _installButton.Location = new Point(422, 304);
+        _installButton.Size = new Size(110, 36);
         _installButton.Click += InstallButton_Click;
         _cancelButton.Text = "Cancel";
-        _cancelButton.Width = 112;
-        _cancelButton.Height = 34;
+        _cancelButton.Location = new Point(300, 304);
+        _cancelButton.Size = new Size(110, 36);
         _cancelButton.Click += (_, _) => Close();
-        buttons.Controls.Add(_installButton);
-        buttons.Controls.Add(_cancelButton);
 
-        root.Controls.Add(_titleLabel, 0, 0);
-        root.Controls.Add(_bodyLabel, 0, 1);
-        root.Controls.Add(locationPanel, 0, 2);
-        root.Controls.Add(_progressBar, 0, 3);
-        root.Controls.Add(_statusLabel, 0, 4);
-        root.Controls.Add(buttons, 0, 5);
+        Panel separator = new()
+        {
+            Location = new Point(28, 288),
+            Size = new Size(504, 1)
+        };
+        separator.Paint += (_, e) =>
+        {
+            using Pen pen = new(_locationPanel.BorderColor);
+            e.Graphics.DrawLine(pen, 0, 0, separator.Width, 0);
+        };
 
-        Controls.Add(root);
+        Controls.AddRange([
+            _titleLabel,
+            _bodyLabel,
+            _locationPanel,
+            _progressBar,
+            _statusLabel,
+            separator,
+            _cancelButton,
+            _installButton
+        ]);
     }
 
     private async void InstallButton_Click(object? sender, EventArgs e)
@@ -198,7 +193,7 @@ internal sealed class InstallerForm : Form
 
     private void UpdateProgress(InstallProgress progress)
     {
-        _progressBar.Value = Math.Clamp(progress.Percent, 0, 100);
+        _progressBar.ProgressValue = progress.Percent;
         _statusLabel.Text = progress.Message;
     }
 
@@ -232,7 +227,14 @@ internal sealed class InstallerForm : Form
         RegisterInstalledApp(_installDir, appExe, uninstallerExe, appIcon);
 
         progress.Report(new InstallProgress(90, "Configuring startup task..."));
-        CreateLogonTask(appExe);
+        if (string.Equals(Environment.GetEnvironmentVariable("MUTEMIC_SKIP_LOGON_TASK"), "1", StringComparison.Ordinal))
+        {
+            progress.Report(new InstallProgress(90, "Skipping startup task for this test run..."));
+        }
+        else
+        {
+            CreateLogonTask(appExe);
+        }
 
         progress.Report(new InstallProgress(96, "Starting Mute MIC..."));
         Process.Start(new ProcessStartInfo(appExe) { UseShellExecute = true });
@@ -467,25 +469,44 @@ internal sealed class InstallerForm : Form
 
         Color back = lightTheme ? Color.White : Color.FromArgb(32, 32, 32);
         Color fore = lightTheme ? Color.FromArgb(24, 24, 24) : Color.White;
-        Color panel = lightTheme ? Color.FromArgb(246, 246, 246) : Color.FromArgb(42, 42, 42);
-        Color border = lightTheme ? Color.FromArgb(218, 218, 218) : Color.FromArgb(70, 70, 70);
+        Color panel = lightTheme ? Color.FromArgb(246, 246, 246) : Color.FromArgb(43, 43, 43);
+        Color border = lightTheme ? Color.FromArgb(218, 218, 218) : Color.FromArgb(72, 72, 72);
 
         BackColor = back;
         ForeColor = fore;
+        _locationPanel.FillColor = panel;
+        _locationPanel.BorderColor = border;
+        _progressBar.TrackColor = lightTheme ? Color.FromArgb(226, 226, 226) : Color.FromArgb(58, 58, 58);
+        _progressBar.ProgressColor = Color.FromArgb(0, 120, 212);
 
         foreach (Control control in Controls.Cast<Control>().SelectMany(FlattenControls))
         {
             control.ForeColor = fore;
-            if (control is Panel)
+            if (control is SetupFieldPanel fieldPanel)
             {
-                control.BackColor = panel;
+                fieldPanel.BackColor = back;
+                fieldPanel.FillColor = panel;
+                fieldPanel.BorderColor = border;
+                fieldPanel.Invalidate();
             }
-            else if (control is Button button)
+            else if (control is SetupProgressBar progressBar)
             {
-                button.FlatStyle = FlatStyle.Flat;
-                button.BackColor = back;
-                button.FlatAppearance.BorderColor = border;
-                button.FlatAppearance.MouseOverBackColor = panel;
+                progressBar.BackColor = back;
+                progressBar.TrackColor = lightTheme ? Color.FromArgb(226, 226, 226) : Color.FromArgb(58, 58, 58);
+                progressBar.ProgressColor = Color.FromArgb(0, 120, 212);
+            }
+            else if (control is SetupButton setupButton)
+            {
+                setupButton.BackColor = lightTheme ? Color.FromArgb(252, 252, 252) : Color.FromArgb(37, 37, 37);
+                setupButton.BorderColor = border;
+                setupButton.HoverBackColor = lightTheme ? Color.FromArgb(242, 242, 242) : Color.FromArgb(50, 50, 50);
+                setupButton.PressedBackColor = lightTheme ? Color.FromArgb(235, 235, 235) : Color.FromArgb(58, 58, 58);
+                setupButton.ForeColor = fore;
+                setupButton.Invalidate();
+            }
+            else if (control is Panel)
+            {
+                control.BackColor = back;
             }
             else
             {
