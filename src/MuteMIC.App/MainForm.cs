@@ -1,3 +1,4 @@
+using System.IO;
 using System.Media;
 using Microsoft.Win32;
 
@@ -13,21 +14,15 @@ public sealed class MainForm : Form
     private readonly SettingsStore _settingsStore = new();
     private readonly AppSettings _settings;
     private readonly NotifyIcon _trayIcon;
-    private readonly ThemedContextMenuStrip _trayMenu = new();
-    private readonly ToolStripMenuItem _hotkeysItem = new();
-    private readonly ToolStripMenuItem _languageItem = new();
-    private readonly ToolStripMenuItem _englishItem = new();
-    private readonly ToolStripMenuItem _portugueseItem = new();
-    private readonly ToolStripMenuItem _exitItem = new();
     private readonly HotkeyTextBox _toggleHotkeyBox = new();
     private readonly HotkeyTextBox _muteHotkeyBox = new();
     private readonly HotkeyTextBox _unmuteHotkeyBox = new();
     private readonly Label _toggleLabel = new();
     private readonly Label _muteLabel = new();
     private readonly Label _unmuteLabel = new();
-    private readonly Button _toggleReset = new();
-    private readonly Button _muteReset = new();
-    private readonly Button _unmuteReset = new();
+    private readonly ModernButton _toggleReset = new();
+    private readonly ModernButton _muteReset = new();
+    private readonly ModernButton _unmuteReset = new();
     private readonly System.Windows.Forms.Timer _refreshTimer = new();
     private readonly SoundPlayer _onPlayer;
     private readonly SoundPlayer _offPlayer;
@@ -37,6 +32,7 @@ public sealed class MainForm : Form
     private GlobalHotkeys? _globalHotkeys;
     private Icon? _onIcon;
     private Icon? _offIcon;
+    private TrayMenuWindow? _trayMenuWindow;
     private bool _exitRequested;
     private bool? _lastAllMuted;
 
@@ -52,19 +48,17 @@ public sealed class MainForm : Form
 
         Text = "Mute MIC";
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(390, 250);
-        ClientSize = new Size(430, 255);
+        MinimumSize = new Size(430, 286);
+        ClientSize = new Size(430, 286);
         MaximizeBox = false;
         FormBorderStyle = FormBorderStyle.FixedSingle;
 
         _trayIcon = new NotifyIcon
         {
-            ContextMenuStrip = _trayMenu,
             Visible = true
         };
         _trayIcon.MouseClick += TrayIcon_MouseClick;
 
-        BuildMenu();
         BuildUi();
         LoadSettingsIntoControls();
         ApplyLanguage();
@@ -121,7 +115,7 @@ public sealed class MainForm : Form
             _refreshTimer.Dispose();
             _globalHotkeys?.Dispose();
             _trayIcon.Dispose();
-            _trayMenu.Dispose();
+            _trayMenuWindow?.Close();
             _onPlayer.Dispose();
             _offPlayer.Dispose();
             _onSoundStream.Dispose();
@@ -133,49 +127,25 @@ public sealed class MainForm : Form
         base.Dispose(disposing);
     }
 
-    private void BuildMenu()
-    {
-        _hotkeysItem.Click += (_, _) => ShowSettingsWindow();
-        _exitItem.Click += (_, _) =>
-        {
-            _exitRequested = true;
-            Close();
-        };
-
-        _englishItem.Click += (_, _) => SetLanguage("en");
-        _portugueseItem.Click += (_, _) => SetLanguage("pt-BR");
-        _languageItem.DropDownItems.AddRange([_englishItem, _portugueseItem]);
-        if (_languageItem.DropDown is ToolStripDropDownMenu languageMenu)
-        {
-            languageMenu.ShowImageMargin = false;
-            languageMenu.ShowCheckMargin = false;
-            languageMenu.Padding = new Padding(6);
-        }
-
-        _trayMenu.Items.AddRange([
-            _hotkeysItem,
-            _languageItem,
-            new ToolStripSeparator(),
-            _exitItem
-        ]);
-    }
-
     private void BuildUi()
     {
         TableLayoutPanel layout = new()
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(18),
+            Padding = new Padding(24, 22, 20, 22),
             ColumnCount = 2,
             RowCount = 7
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 92));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 86));
 
-        for (int i = 0; i < 7; i++)
-        {
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, i % 2 == 0 ? 28 : 42));
-        }
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
         AddHotkeyRow(layout, _toggleLabel, _toggleHotkeyBox, _toggleReset, 0);
         AddHotkeyRow(layout, _muteLabel, _muteHotkeyBox, _muteReset, 2);
@@ -188,19 +158,28 @@ public sealed class MainForm : Form
         TableLayoutPanel layout,
         Label label,
         HotkeyTextBox textBox,
-        Button resetButton,
+        ModernButton resetButton,
         int labelRow)
     {
         label.Dock = DockStyle.Fill;
         label.TextAlign = ContentAlignment.MiddleLeft;
         label.AutoSize = false;
+        label.Margin = labelRow == 0 ? Padding.Empty : new Padding(0, 10, 0, 0);
         textBox.Dock = DockStyle.Fill;
+        textBox.Margin = Padding.Empty;
         resetButton.Dock = DockStyle.Fill;
-        resetButton.Margin = new Padding(8, 3, 0, 3);
+        resetButton.Margin = new Padding(12, 4, 0, 4);
+
+        ModernFieldPanel textBoxHost = new()
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(0, 4, 0, 4)
+        };
+        textBoxHost.Host(textBox);
 
         layout.Controls.Add(label, 0, labelRow);
         layout.SetColumnSpan(label, 2);
-        layout.Controls.Add(textBox, 0, labelRow + 1);
+        layout.Controls.Add(textBoxHost, 0, labelRow + 1);
         layout.Controls.Add(resetButton, 1, labelRow + 1);
     }
 
@@ -281,7 +260,10 @@ public sealed class MainForm : Form
 
         bool mutedIcon = allMuted != false;
         _trayIcon.Icon = mutedIcon ? _offIcon : _onIcon;
-        _trayIcon.Text = BuildTooltip(devices, allMuted);
+        if (_trayMenuWindow is null)
+        {
+            _trayIcon.Text = BuildTooltip(devices, allMuted);
+        }
 
         if (changed)
         {
@@ -329,6 +311,45 @@ public sealed class MainForm : Form
         {
             ExecuteAudioOperation(() => _audioService.ToggleAll());
         }
+        else if (e.Button == MouseButtons.Right)
+        {
+            ShowTrayMenu();
+        }
+    }
+
+    private void ShowTrayMenu()
+    {
+        _trayMenuWindow?.Close();
+
+        string language = _settings.Language;
+        TrayMenuText menuText = new(
+            Strings.Get(language, "Hotkeys"),
+            Strings.Get(language, "Language"),
+            Strings.Get(language, "English"),
+            Strings.Get(language, "Portuguese"),
+            Strings.Get(language, "Exit"));
+
+        _trayMenuWindow = new TrayMenuWindow(
+            ThemeService.IsLightTheme(),
+            menuText,
+            language,
+            Cursor.Position,
+            ShowSettingsWindow,
+            SetLanguage,
+            () =>
+            {
+                _exitRequested = true;
+                Close();
+            });
+        string previousTooltip = _trayIcon.Text;
+        _trayIcon.Text = " ";
+        _trayMenuWindow.Closed += (_, _) =>
+        {
+            _trayMenuWindow = null;
+            _trayIcon.Text = previousTooltip;
+            RefreshAudioStatus(false);
+        };
+        _trayMenuWindow.Show();
     }
 
     private void SetLanguage(string language)
@@ -343,13 +364,6 @@ public sealed class MainForm : Form
     {
         string language = _settings.Language;
         Text = Strings.Get(language, "AppName");
-        _hotkeysItem.Text = Strings.Get(language, "Hotkeys");
-        _languageItem.Text = Strings.Get(language, "Language");
-        _englishItem.Text = Strings.Get(language, "English");
-        _portugueseItem.Text = Strings.Get(language, "Portuguese");
-        _exitItem.Text = Strings.Get(language, "Exit");
-        _englishItem.Checked = language == "en";
-        _portugueseItem.Checked = language == "pt-BR";
 
         _toggleLabel.Text = Strings.Get(language, "ToggleLabel");
         _muteLabel.Text = Strings.Get(language, "MuteLabel");
@@ -380,16 +394,38 @@ public sealed class MainForm : Form
 
         BackColor = backColor;
         ForeColor = foreColor;
-        _trayMenu.ApplyTheme(lightTheme);
-        _languageItem.DropDown.BackColor = _trayMenu.BackColor;
-        _languageItem.DropDown.ForeColor = _trayMenu.ForeColor;
-        _languageItem.DropDown.Renderer = new TrayMenuRenderer(lightTheme);
 
         foreach (Control control in Controls.Cast<Control>().SelectMany(FlattenControls))
         {
-            control.BackColor = control is TextBox ? inputBackColor : backColor;
             control.ForeColor = foreColor;
-            if (control is Button button)
+            if (control is ModernFieldPanel fieldPanel)
+            {
+                fieldPanel.BackColor = backColor;
+                fieldPanel.FillColor = inputBackColor;
+                fieldPanel.BorderColor = borderColor;
+                fieldPanel.FocusBorderColor = Color.FromArgb(0, 120, 212);
+                fieldPanel.Invalidate();
+            }
+            else if (control is TextBox textBox)
+            {
+                textBox.BackColor = inputBackColor;
+                textBox.BorderStyle = BorderStyle.None;
+            }
+            else if (control is ModernButton modernButton)
+            {
+                modernButton.BackColor = lightTheme ? Color.FromArgb(252, 252, 252) : Color.FromArgb(37, 37, 37);
+                modernButton.BorderColor = borderColor;
+                modernButton.HoverBackColor = lightTheme ? Color.FromArgb(242, 242, 242) : Color.FromArgb(50, 50, 50);
+                modernButton.PressedBackColor = lightTheme ? Color.FromArgb(235, 235, 235) : Color.FromArgb(58, 58, 58);
+                modernButton.ForeColor = foreColor;
+                modernButton.Invalidate();
+            }
+            else
+            {
+                control.BackColor = backColor;
+            }
+
+            if (control is Button button && control is not ModernButton)
             {
                 button.FlatStyle = FlatStyle.Flat;
                 button.FlatAppearance.BorderColor = borderColor;

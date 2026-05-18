@@ -24,6 +24,7 @@ internal sealed class HotkeyTextBox : TextBox
     {
         ReadOnly = true;
         TabStop = true;
+        BorderStyle = BorderStyle.None;
         ShortcutsEnabled = false;
     }
 

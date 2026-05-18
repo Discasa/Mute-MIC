@@ -93,6 +93,9 @@ The installer requires administrator privileges because it creates a logon task
 with highest privileges. Elevated launch keeps the global hotkey reliable when
 games or other elevated applications are focused.
 
+The installer uses a guided Windows Forms window with the install location,
+confirmation buttons, progress feedback, and a final installed state.
+
 The release installer embeds the app and uninstaller executables, so the
 installer can be copied and run by itself. This is still a framework-dependent
 .NET build and expects the .NET 10 Desktop Runtime on the target machine. The
@@ -134,3 +137,11 @@ The installer also attempts to remove the legacy task:
 ```text
 MicMute
 ```
+
+## Uninstaller
+
+The uninstaller also requires administrator privileges so it can remove elevated
+scheduled tasks. It shows a confirmation window, reports progress while removing
+shortcuts, registry entries, tasks, and settings, then shows a final completion
+state. If the application folder is already gone, it reports that Mute MIC was
+already uninstalled and still cleans up remaining entries.

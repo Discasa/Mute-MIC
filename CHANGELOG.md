@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3 - 2026-05-18
+
+- Added a guided installer window with install location, confirmation, progress, and completion states.
+- Added a guided uninstaller window with confirmation, progress, completion, and already-uninstalled feedback.
+- Replaced the tray context menu with a WPF popup for smoother Windows 11 style corners, shadow, spacing, and submenu rendering.
+- Reworked the hotkey editor fields and reset buttons with thinner borders, rounded corners, and Windows 11 themed spacing.
+
 ## 1.0.2 - 2026-05-18
 
 - Improved the installer to create a dedicated Start Menu folder with app and uninstaller shortcuts.

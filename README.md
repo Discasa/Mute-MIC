@@ -30,7 +30,8 @@ Run:
 .\release\Mute MIC Installer.exe
 ```
 
-The installer copies the app to `%LOCALAPPDATA%\Mute MIC`, creates a `Mute MIC`
+The installer shows the install location, asks for confirmation, displays
+progress, copies the app to `%LOCALAPPDATA%\Mute MIC`, creates a `Mute MIC`
 folder in the Start Menu with app and uninstaller shortcuts, registers Mute MIC
 in Windows Installed Apps, removes the legacy `MicMute` scheduled task when
 elevated, and creates a new `Mute MIC` logon task with highest privileges.
@@ -56,5 +57,6 @@ Use Windows Settings > Apps > Installed apps, the Start Menu shortcut named
 %LOCALAPPDATA%\Mute MIC\Mute MIC Uninstaller.exe
 ```
 
-The uninstaller removes the app, Start Menu shortcuts, scheduled tasks, and user
+The uninstaller shows a confirmation and progress window, then removes the app,
+Start Menu shortcuts, scheduled tasks, Windows Installed Apps entry, and user
 settings.
