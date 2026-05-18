@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MuteMIC.App/MuteMIC.App.csproj" />
+    <Project Path="src/MuteMIC.Installer/MuteMIC.Installer.csproj" />
+    <Project Path="src/MuteMIC.Uninstaller/MuteMIC.Uninstaller.csproj" />
+  </Folder>
+</Solution>
