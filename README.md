@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute%20MIC%20Installer.exe">
+  <a href="https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute.MIC.Installer.exe">
     Download Mute MIC Installer
   </a>
 </p>
@@ -38,7 +38,7 @@ at the same time.
 
 Get the latest installer here:
 
-[Download Mute MIC Installer](https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute%20MIC%20Installer.exe)
+[Download Mute MIC Installer](https://github.com/Discasa/Mute-MIC/releases/latest/download/Mute.MIC.Installer.exe)
 
 All releases are available on the
 [GitHub Releases page](https://github.com/Discasa/Mute-MIC/releases).
