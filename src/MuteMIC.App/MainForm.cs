@@ -79,6 +79,7 @@ public sealed class MainForm : Form
         base.OnLoad(e);
         _globalHotkeys = new GlobalHotkeys();
         RegisterHotkeys();
+        StartupRegistrationService.EnsureRegistered();
         RefreshAudioStatus(false);
         _refreshTimer.Start();
         _updateService.Start();
@@ -225,6 +226,7 @@ public sealed class MainForm : Form
         _settings.MuteHotkey = _muteHotkeyBox.Hotkey;
         _settings.UnmuteHotkey = _unmuteHotkeyBox.Hotkey;
         _settingsStore.Save(_settings);
+        StartupRegistrationService.EnsureRegistered();
     }
 
     private void RegisterHotkeys()

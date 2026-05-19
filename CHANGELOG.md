@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2 - 2026-05-19
+
+- Added startup self-repair in the installed app so the current-user `Run` entry is restored if it is missing or stale.
+- Revalidates startup registration after saving hotkey or language settings.
+
 ## 1.2.1 - 2026-05-18
 
 - Reduced tray menu shadow and removed the dead gap between the main menu and submenus.
